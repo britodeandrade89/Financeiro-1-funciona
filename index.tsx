@@ -143,8 +143,8 @@ const initialMonthData = {
 // =================================================================================
 // STATE & AI INSTANCE
 // =================================================================================
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-let chat: Chat | null = null;
+let ai = null; // Lazy initialized to prevent crash on load if process.env is not available
+let chat = null;
 let currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [] };
 let currentModalType = '';
 let currentMonth = 11;
@@ -1306,6 +1306,12 @@ async function initializeAndStartChat() {
     elements.aiChatForm.removeEventListener('submit', handleAiChatSubmit);
 
     try {
+        // Lazy initialize the AI client. This prevents the app from crashing on load
+        // if the API key environment variable isn't set.
+        if (!ai) {
+             ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        }
+
         chat = ai.chats.create({
             model: 'gemini-2.5-pro',
             config: {
@@ -1353,7 +1359,12 @@ async function initializeAndStartChat() {
     } catch (error) {
         console.error("Error initializing AI Chat:", error);
         elements.aiAnalysis.innerHTML = '';
-        appendChatMessage('ai', 'Ocorreu um erro ao inicializar a IA. Verifique sua conexão ou tente novamente mais tarde.');
+        let errorMessage = 'Ocorreu um erro ao inicializar a IA. Verifique sua conexão ou tente novamente mais tarde.';
+        // Check for common Vercel/environment variable error
+        if (error instanceof TypeError && (error.message.includes('process') || error.message.includes('env'))) {
+            errorMessage = '<strong>Erro de Configuração:</strong> A chave da API de IA não foi encontrada. O administrador precisa configurar a variável de ambiente `API_KEY` nas configurações do Vercel para que a Análise IA funcione.';
+        }
+        appendChatMessage('ai', errorMessage);
         elements.aiChatInput.placeholder = "Erro ao conectar com a IA";
     }
 
