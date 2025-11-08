@@ -1580,13 +1580,22 @@ function initializeFirebase() {
                     console.error("Anonymous sign-in failed:", error);
                     syncStatus = 'error';
                     
-                    // Set a simpler error message for the profile page.
                     if (error.code === 'auth/configuration-not-found') {
                         syncErrorDetails = `<p><strong>Falha na autenticação anônima.</strong> Verifique se o método de login anônimo está ativado no seu painel do Firebase em Authentication > Sign-in method.</p>`;
                     } else {
                         syncErrorDetails = `<p>Falha na autenticação. Não é possível salvar os dados na nuvem.</p><p><strong>Erro:</strong> ${error.message}</p>`;
                     }
-                    
+
+                    // Fallback to local mode if sign-in fails
+                    console.warn("Firebase sign-in failed. Initializing with local data.", error);
+                    currentUser = { uid: 'local-user', isAnonymous: true }; // Mock user
+                    if (currentYear === 2025 && currentMonth === 11) {
+                        currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+                    } else {
+                        currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [] };
+                    }
+                    updateMonthDisplay();
+                    updateUI();
                     updateSyncButtonState();
                     updateProfilePage();
                 });
