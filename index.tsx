@@ -168,21 +168,15 @@ const elements = {
     monthDisplay: document.getElementById('monthDisplay'),
     
     // Home screen cards
+    finalBalance: document.getElementById('finalBalance'),
+    mainBalanceIncomes: document.getElementById('mainBalanceIncomes'),
+    mainBalanceExpenses: document.getElementById('mainBalanceExpenses'),
     totalIncome: document.getElementById('totalIncome'),
     totalIncomeProgressBar: document.getElementById('totalIncomeProgressBar'),
     totalIncomeSubtitle: document.getElementById('totalIncomeSubtitle'),
-    salaryIncome: document.getElementById('salaryIncome'),
-    salaryIncomeProgressBar: document.getElementById('salaryIncomeProgressBar'),
-    salaryIncomeSubtitle: document.getElementById('salaryIncomeSubtitle'),
-    mumbucaIncome: document.getElementById('mumbucaIncome'),
-    mumbucaIncomeProgressBar: document.getElementById('mumbucaIncomeProgressBar'),
-    mumbucaIncomeSubtitle: document.getElementById('mumbucaIncomeSubtitle'),
     monthlyDebts: document.getElementById('monthlyDebts'),
     monthlyDebtsProgressBar: document.getElementById('monthlyDebtsProgressBar'),
     monthlyDebtsSubtitle: document.getElementById('monthlyDebtsSubtitle'),
-    finalBalance: document.getElementById('finalBalance'),
-    finalBalanceSubtitle: document.getElementById('finalBalanceSubtitle'),
-
 
     // Lists and other elements
     incomesList: document.getElementById('incomesList'),
@@ -604,67 +598,43 @@ function updateUI() {
 function updateSummary() {
     // Calculations
     const allIncomes = currentMonthData.incomes || [];
-    const allExpenses = currentMonthData.expenses || [];
-    const allShopping = currentMonthData.shoppingItems || [];
-    const allAvulsos = currentMonthData.avulsosItems || [];
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
 
-    const totalIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const salaryIncome = allIncomes
-        .filter(item => item.description.toUpperCase().includes('SALARIO'))
-        .reduce((sum, item) => sum + item.amount, 0);
-    const mumbucaIncome = allIncomes
-        .filter(item => item.description.toUpperCase().includes('MUMBUCA'))
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    // Mumbuca spending now includes shopping list items and specific expenses
-    const mumbucaExpenses = allExpenses.filter(item => item.category === 'abastecimento_mumbuca');
-    const totalMumbucaSpending = mumbucaExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const totalIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidIncomeAmount = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
 
-    // Expenses to be paid from Salary (all expenses EXCEPT mumbuca fuel)
-    const expensesFromSalary = [...allExpenses.filter(item => item.category !== 'abastecimento_mumbuca'), ...allShopping];
-    const totalPlannedExpenses = expensesFromSalary.reduce((sum, item) => sum + item.amount, 0);
-    const totalPaidExpenses = expensesFromSalary
-        .filter(item => item.paid)
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    const totalAvulsosSpending = allAvulsos.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpensesAmount = allExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const paidExpensesAmount = allExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
 
-    // This is the total committed spending for the month from all sources.
-    const totalCommittedSpending = totalPlannedExpenses + totalMumbucaSpending; 
-    
-    // Final balance is Salary minus salary-paid debts and one-offs
-    const finalBalance = salaryIncome - totalPlannedExpenses - totalAvulsosSpending;
+    const finalBalance = paidIncomeAmount - paidExpensesAmount; // A more realistic "current" balance
 
     // Progress percentages
-    const totalIncomeProgress = totalIncome > 0 ? (totalCommittedSpending / totalIncome) * 100 : 0;
-    const salaryIncomeProgress = salaryIncome > 0 ? (totalPlannedExpenses / salaryIncome) * 100 : 0;
-    const mumbucaIncomeProgress = mumbucaIncome > 0 ? (totalMumbucaSpending / mumbucaIncome) * 100 : 0;
-    const monthlyDebtsProgress = totalPlannedExpenses > 0 ? (totalPaidExpenses / totalPlannedExpenses) * 100 : 0;
+    const incomeProgress = totalIncomeAmount > 0 ? (paidIncomeAmount / totalIncomeAmount) * 100 : 0;
+    const expenseProgress = totalExpensesAmount > 0 ? (paidExpensesAmount / totalExpensesAmount) * 100 : 0;
     
-    // Update Total Income Card
-    elements.totalIncome.textContent = formatCurrency(totalIncome);
-    elements.totalIncomeProgressBar.style.width = `${Math.min(totalIncomeProgress, 100)}%`;
-    elements.totalIncomeSubtitle.textContent = `${formatCurrency(totalCommittedSpending)} gastos de ${formatCurrency(totalIncome)}`;
-
-    // Update Salary Income Card
-    elements.salaryIncome.textContent = formatCurrency(salaryIncome);
-    elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
-    elements.salaryIncomeSubtitle.textContent = `${formatCurrency(totalPlannedExpenses)} gastos de ${formatCurrency(salaryIncome)}`;
-    
-    // Update Mumbuca Income Card
-    elements.mumbucaIncome.textContent = formatCurrency(mumbucaIncome);
-    elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
-    elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(totalMumbucaSpending)} gastos de ${formatCurrency(mumbucaIncome)}`;
-    
-    // Update Monthly Debts Card (now only shows salary-based debts)
-    elements.monthlyDebts.textContent = formatCurrency(totalPlannedExpenses);
-    elements.monthlyDebtsProgressBar.style.width = `${Math.min(monthlyDebtsProgress, 100)}%`;
-    elements.monthlyDebtsSubtitle.textContent = `${formatCurrency(totalPaidExpenses)} pagos de ${formatCurrency(totalPlannedExpenses)}`;
-    
-    // Update Final Balance Card
+    // Update Main Balance Card
     elements.finalBalance.textContent = formatCurrency(finalBalance);
-    elements.finalBalanceSubtitle.textContent = `Salário - Dívidas - Avulsos`;
+    elements.mainBalanceIncomes.textContent = formatCurrency(totalIncomeAmount);
+    elements.mainBalanceExpenses.textContent = formatCurrency(totalExpensesAmount);
+    if (finalBalance >= 0) {
+        elements.finalBalance.classList.add('balance-positive');
+        elements.finalBalance.classList.remove('balance-negative');
+    } else {
+        elements.finalBalance.classList.add('balance-negative');
+        elements.finalBalance.classList.remove('balance-positive');
+    }
+
+    // Update Incomes Card
+    elements.totalIncome.textContent = formatCurrency(totalIncomeAmount);
+    elements.totalIncomeProgressBar.style.width = `${Math.min(incomeProgress, 100)}%`;
+    elements.totalIncomeSubtitle.textContent = `${formatCurrency(paidIncomeAmount)} recebidos`;
+
+    // Update Expenses Card
+    elements.monthlyDebts.textContent = formatCurrency(totalExpensesAmount);
+    elements.monthlyDebtsProgressBar.style.width = `${Math.min(expenseProgress, 100)}%`;
+    elements.monthlyDebtsSubtitle.textContent = `${formatCurrency(paidExpensesAmount)} pagos`;
 }
+
 
 function updateMonthDisplay() {
     elements.monthDisplay.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
@@ -708,21 +678,28 @@ function createIncomeItem(income, type) {
     const item = document.createElement('div');
     item.className = 'item';
     item.onclick = () => openEditModal(income.id, type);
+    
+    const checkTitle = income.paid ? 'Marcar como não recebido' : 'Marcar como recebido';
+
     item.innerHTML = `
-        <div class="item-content">
-            <div class="item-details">
-                <div class="item-description">${income.description}</div>
+        <button class="check-btn ${income.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
+        <div class="item-info-wrapper">
+            <div class="item-primary-info">
+                <div class="item-description ${income.paid ? 'paid' : ''}">${income.description}</div>
+                <div class="item-actions">
+                     <span class="item-amount income-amount">${formatCurrency(income.amount)}</span>
+                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
+                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
+                </div>
             </div>
         </div>
-        <div class="item-actions">
-            <span class="item-amount income-amount">${formatCurrency(income.amount)}</span>
-            <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
-            <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
-        </div>
     `;
+    item.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(income.id, type); };
     item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(income.id, type); };
+    item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(income.id, type); };
     return item;
 }
+
 
 function createExpenseItem(expense, type) {
     const item = document.createElement('div');
@@ -860,7 +837,6 @@ function togglePaid(id, type) {
     const items = currentMonthData[type] || [];
     const item = items.find(i => i.id === id);
     if (item) {
-        const wasPaid = item.paid;
         item.paid = !item.paid;
         
         if (item.paid) {
@@ -870,28 +846,23 @@ function togglePaid(id, type) {
         }
 
         // Automation: Update bank account balances based on payments
-        if (wasPaid !== item.paid && (type === 'expenses' || type === 'shoppingItems' || type === 'avulsosItems')) {
-            const mainAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Conta Principal");
-            const savingsAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Poupança");
+        const mainAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Conta Principal");
 
-            const isInvestmentExpense = item.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM');
-
-            // If an item is marked as PAID (it was paid before, but now it is)
-            if (item.paid) {
-                if (mainAccount) {
-                    mainAccount.balance -= item.amount;
-                }
-                if (isInvestmentExpense && savingsAccount) {
-                    savingsAccount.balance += item.amount;
-                }
-            } 
-            // If an item is marked as UNPAID (it was paid before, but now it is not)
-            else { 
-                if (mainAccount) {
-                    mainAccount.balance += item.amount;
-                }
-                if (isInvestmentExpense && savingsAccount) {
-                    savingsAccount.balance -= item.amount;
+        if (mainAccount) {
+            const amountChange = item.paid ? item.amount : -item.amount;
+            
+            if (type === 'incomes') {
+                mainAccount.balance += amountChange;
+            } else if (['expenses', 'shoppingItems', 'avulsosItems'].includes(type)) {
+                mainAccount.balance -= amountChange;
+                
+                // Special case for travel investment: move money from main to savings
+                const isInvestmentExpense = item.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM');
+                if (isInvestmentExpense) {
+                    const savingsAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Poupança Viagem");
+                    if (savingsAccount) {
+                        savingsAccount.balance += amountChange;
+                    }
                 }
             }
         }
@@ -899,6 +870,7 @@ function togglePaid(id, type) {
         saveData(); 
     }
 }
+
 
 function deleteItem(id, type) {
     if (!currentMonthData[type]) return;

@@ -20,23 +20,18 @@
     --border: #3f3f46; /* Softer border */
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-    --calm-gradient: linear-gradient(135deg, #5eead4, #14b8a6); /* teal-300 to teal-500 */
-    --salary: #10b981; /* green-500 */
-    --mumbuca: #3b82f6; /* blue-500 */
-    --balance: #60a5fa; /* blue-400 */
+    --calm-gradient: linear-gradient(135deg, #2dd4bf, #14b8a6);
 }
 
 body {
     font-family: 'Poppins', sans-serif;
     background-color: var(--background);
-    background-image: linear-gradient(180deg, #134e4a 0%, #18181b 40%);
+    background-image: linear-gradient(180deg, #115e59 0%, #18181b 30%);
     background-repeat: no-repeat;
-    background-attachment: fixed;
     color: var(--text);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow: hidden; /* Prevent body scroll */
 }
 
 /* App Layout */
@@ -45,12 +40,13 @@ body {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
+    overflow: hidden;
 }
 
 #main-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 2rem;
+    padding: 1rem;
     padding-bottom: 100px; /* Space for tab bar */
 }
 
@@ -73,16 +69,23 @@ body {
 
 /* Header */
 .header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 1rem 2rem;
-    background: var(--surface);
+    padding: 1rem;
+    background: rgba(24, 24, 27, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .logo {
+    grid-column: 1;
+    justify-self: start;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -98,22 +101,14 @@ body {
     justify-content: center;
     color: white;
 }
-.logo-title { display: none; }
-.logo-subtitle { display: none; }
-
-
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
 
 .month-selector {
+    grid-column: 2;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
     background: var(--background);
-    padding: 0.5rem;
+    padding: 0.25rem;
     border-radius: 12px;
     border: 1px solid var(--border);
 }
@@ -137,11 +132,16 @@ body {
 }
 
 .month-display {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
-    min-width: 160px;
+    min-width: 120px;
     text-align: center;
     color: var(--text);
+}
+
+.header-placeholder {
+    grid-column: 3;
+    justify-self: end;
 }
 
 .sync-btn {
@@ -178,14 +178,16 @@ body {
 /* Summary Cards */
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
 .summary-card {
-    background: var(--surface);
-    padding: 1.5rem;
+    background: rgba(39, 39, 42, 0.6); /* surface with transparency */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 1.25rem;
     border-radius: 16px;
     border: 1px solid var(--border);
     transition: all 0.3s ease;
@@ -194,16 +196,12 @@ body {
     display: flex;
     flex-direction: column;
 }
-.summary-card:hover {
-    transform: none;
-    border-color: var(--border);
-}
 
 .summary-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .summary-header .summary-title {
@@ -220,45 +218,82 @@ body {
     font-weight: 700;
     margin-bottom: 1rem;
 }
+.summary-value-small {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+#totalIncome { color: var(--success); }
+#monthlyDebts { color: var(--warning); }
 
-/* New Uniform Card Elements */
+
 .summary-progress-bar {
-    height: 8px;
+    height: 6px;
     background-color: var(--surface-light);
-    border-radius: 4px;
+    border-radius: 3px;
     margin-bottom: 0.75rem;
     overflow: hidden;
 }
 
 .summary-progress-bar-inner {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
+.summary-progress-bar-inner.income { background-color: var(--success); }
+.summary-progress-bar-inner.expense { background-color: var(--danger); }
+
 
 .summary-details {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-light);
     margin-top: auto;
 }
 
-/* Card Specific Styling */
-.summary-card.total-income .summary-value { color: var(--text); }
-.summary-card.total-income .summary-progress-bar-inner { background-color: var(--text-lighter); }
+/* Main Balance Card */
+.main-balance {
+    background: var(--calm-gradient);
+    color: white;
+    text-align: center;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+.main-balance .summary-title {
+    color: rgba(255,255,255,0.8);
+    justify-content: center;
+    font-size: 1rem;
+}
+.main-balance .summary-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0 1.5rem;
+    line-height: 1.2;
+}
+.balance-details {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 1.5rem;
+}
+.balance-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.balance-detail.income svg { color: var(--success); }
+.balance-detail.expense svg { color: var(--danger); }
+.balance-detail span {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+.balance-detail strong {
+    font-size: 1rem;
+    font-weight: 600;
+}
 
-.summary-card.salary-income .summary-value { color: var(--salary); }
-.summary-card.salary-income .summary-progress-bar-inner { background-color: var(--salary); }
-
-.summary-card.mumbuca-income .summary-value { color: var(--mumbuca); }
-.summary-card.mumbuca-income .summary-progress-bar-inner { background-color: var(--mumbuca); }
-
-.summary-card.monthly-debts .summary-value { color: var(--danger); }
-.summary-card.monthly-debts .summary-progress-bar-inner { background-color: var(--primary); }
-
-.summary-card.final-balance .summary-value { color: var(--balance); }
-.summary-card.final-balance .summary-progress-bar { visibility: hidden; }
-
-.balance-positive { color: var(--success); }
+.balance-positive { color: white; }
 .balance-negative { color: var(--danger); }
 
 /* Sections */
@@ -529,6 +564,7 @@ body {
     color: transparent;
     transition: all 0.3s ease;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 .check-btn.paid {
     background: var(--success);
@@ -1141,18 +1177,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Responsive */
 @media (max-width: 768px) {
     #main-content {
-        padding: 1rem;
-        padding-bottom: 90px;
+        padding-top: 2rem;
     }
     .header {
-        padding: 1rem;
+        padding: 0.5rem 1rem;
     }
-    .header-controls {
-        gap: 0.5rem;
-    }
-    .month-selector {
-        gap: 0.5rem;
-    }
+
     .month-display {
         min-width: 130px;
         font-size: 1rem;
@@ -1169,6 +1199,18 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     .item-secondary-info {
         flex-wrap: wrap;
         align-items: flex-start;
+    }
+    
+    .item-amount {
+        font-size: 0.95rem;
+    }
+    
+    .main-balance .summary-value {
+        font-size: 2.2rem;
+    }
+    
+    .balance-detail strong {
+        font-size: 1rem;
     }
 
     .modal-content {

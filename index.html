@@ -40,17 +40,17 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
                 </div>
             </div>
-            <div class="header-controls">
-                <div class="month-selector">
-                    <button id="prevMonthBtn" class="month-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    </button>
-                    <div class="month-display" id="monthDisplay">Novembro 2025</div>
-                    <button id="nextMonthBtn" class="month-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    </button>
-                </div>
-                <button id="sync-btn" class="sync-btn" title="Status da Sincronização"></button>
+            <div class="month-selector">
+                <button id="prevMonthBtn" class="month-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div class="month-display" id="monthDisplay">Novembro 2025</div>
+                <button id="nextMonthBtn" class="month-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+            <div class="header-placeholder">
+                 <button id="sync-btn" class="sync-btn" title="Status da Sincronização"></button>
             </div>
         </header>
 
@@ -70,70 +70,51 @@
             </div>
 
              <div id="view-home" class="app-view active">
-                <div class="summary-grid">
-                    <div class="summary-card total-income">
-                        <div class="summary-header">
-                            <div class="summary-title">Entrada Total</div>
+                <div class="summary-card main-balance">
+                    <div class="summary-title">Balanço do Mês</div>
+                    <div id="finalBalance" class="summary-value">R$ 0,00</div>
+                    <div class="balance-details">
+                        <div class="balance-detail income">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg>
+                            <span>Entradas</span>
+                            <strong id="mainBalanceIncomes">R$ 0,00</strong>
                         </div>
-                        <div id="totalIncome" class="summary-value">R$ 0,00</div>
-                        <div class="summary-progress-bar">
-                            <div id="totalIncomeProgressBar" class="summary-progress-bar-inner"></div>
-                        </div>
-                        <div class="summary-details">
-                            <span id="totalIncomeSubtitle">R$ 0,00 gastos de R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card salary-income">
-                        <div class="summary-header">
-                            <div class="summary-title">Entrada Salário</div>
-                        </div>
-                        <div id="salaryIncome" class="summary-value">R$ 0,00</div>
-                        <div class="summary-progress-bar">
-                            <div id="salaryIncomeProgressBar" class="summary-progress-bar-inner"></div>
-                        </div>
-                        <div class="summary-details">
-                            <span id="salaryIncomeSubtitle">R$ 0,00 gastos de R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card mumbuca-income">
-                        <div class="summary-header">
-                            <div class="summary-title">Entrada Mumbuca</div>
-                        </div>
-                        <div id="mumbucaIncome" class="summary-value">R$ 0,00</div>
-                        <div class="summary-progress-bar">
-                            <div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner"></div>
-                        </div>
-                        <div class="summary-details">
-                            <span id="mumbucaIncomeSubtitle">R$ 0,00 gastos de R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card monthly-debts">
-                        <div class="summary-header">
-                            <div class="summary-title">Dívidas do Mês</div>
-                        </div>
-                        <div id="monthlyDebts" class="summary-value">R$ 0,00</div>
-                        <div class="summary-progress-bar">
-                            <div id="monthlyDebtsProgressBar" class="summary-progress-bar-inner"></div>
-                        </div>
-                        <div class="summary-details">
-                            <span id="monthlyDebtsSubtitle">R$ 0,00 pagos de R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card final-balance">
-                        <div class="summary-header">
-                            <div class="summary-title">Saldo Disponível</div>
-                        </div>
-                        <div id="finalBalance" class="summary-value">R$ 0,00</div>
-                        <div class="summary-progress-bar">
-                            <div id="finalBalanceProgressBar" class="summary-progress-bar-inner"></div>
-                        </div>
-                        <div class="summary-details">
-                            <span id="finalBalanceSubtitle">Salário - Dívidas - Avulsos</span>
+                        <div class="balance-detail expense">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                            <span>Saídas</span>
+                            <strong id="mainBalanceExpenses">R$ 0,00</strong>
                         </div>
                     </div>
                 </div>
 
-                 <div class="section chart-container">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <div class="summary-title">Receitas</div>
+                        </div>
+                        <div id="totalIncome" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar">
+                            <div id="totalIncomeProgressBar" class="summary-progress-bar-inner income"></div>
+                        </div>
+                        <div class="summary-details">
+                            <span id="totalIncomeSubtitle">R$ 0,00 recebidos</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <div class="summary-title">Despesas</div>
+                        </div>
+                        <div id="monthlyDebts" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar">
+                            <div id="monthlyDebtsProgressBar" class="summary-progress-bar-inner expense"></div>
+                        </div>
+                        <div class="summary-details">
+                            <span id="monthlyDebtsSubtitle">R$ 0,00 pagos</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section chart-container">
                     <div class="section-header">
                         <h2 class="section-title">Visão Geral das Despesas</h2>
                     </div>
