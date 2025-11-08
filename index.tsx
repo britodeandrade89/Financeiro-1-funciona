@@ -722,7 +722,13 @@ function renderList(type, listElement, itemCreator, emptyMessage, emptyIcon, gro
         }
 
     } else {
-        items.sort((a, b) => new Date(b.paidDate) - new Date(a.paidDate)).forEach(item => listElement.appendChild(itemCreator(item, type)));
+        items.sort((a, b) => {
+            // Use paidDate as the primary sort key if available, otherwise fallback to creation timestamp from ID.
+            // This ensures the most recent activity (payment or creation) brings an item to the top.
+            const activityTimestampA = a.paidDate ? new Date(a.paidDate).getTime() : (parseInt(a.id.split('_').pop(), 10) || 0);
+            const activityTimestampB = b.paidDate ? new Date(b.paidDate).getTime() : (parseInt(b.id.split('_').pop(), 10) || 0);
+            return activityTimestampB - activityTimestampA;
+        }).forEach(item => listElement.appendChild(itemCreator(item, type)));
     }
 }
 
@@ -943,7 +949,7 @@ function handleAddItem(event) {
     
     if (currentModalType === 'income') {
         if (!currentMonthData.incomes) currentMonthData.incomes = [];
-        currentMonthData.incomes.push(newItem);
+        currentMonthData.incomes.unshift(newItem);
     } else if (currentModalType === 'expense') {
         newItem.type = form.type.value;
         newItem.category = form.category.value;
@@ -955,11 +961,11 @@ function handleAddItem(event) {
     } else if (currentModalType === 'shopping') {
         newItem.category = form.category.value;
         if (!currentMonthData.shoppingItems) currentMonthData.shoppingItems = [];
-        currentMonthData.shoppingItems.push(newItem);
+        currentMonthData.shoppingItems.unshift(newItem);
     } else if (currentModalType === 'avulso') {
         newItem.category = form.category.value;
         if (!currentMonthData.avulsosItems) currentMonthData.avulsosItems = [];
-        currentMonthData.avulsosItems.push(newItem);
+        currentMonthData.avulsosItems.unshift(newItem);
     }
     
     saveData(); 
