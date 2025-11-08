@@ -640,10 +640,9 @@ function updateSummary() {
         elements.finalBalance.classList.remove('balance-positive');
     }
 
-    // Card 2: General Income (Salaries + Mumbuca)
-    const generalIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO') || i.description.toUpperCase().includes('MUMBUCA'));
-    const totalGeneralIncome = generalIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidGeneralIncome = generalIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    // Card 2: General Income (All sources)
+    const totalGeneralIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidGeneralIncome = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const generalIncomeProgress = totalGeneralIncome > 0 ? (paidGeneralIncome / totalGeneralIncome) * 100 : 0;
     
     elements.generalIncome.textContent = formatCurrency(totalGeneralIncome);
