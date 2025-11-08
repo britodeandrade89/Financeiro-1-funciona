@@ -1123,6 +1123,86 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     color: var(--warning);
 }
 
+/* Monthly Analysis Section */
+.analysis-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+.analysis-block-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.top-spending-list, .comparison-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.top-spending-item, .comparison-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1rem;
+}
+.top-spending-item .item-info {
+    display: flex;
+    flex-direction: column;
+}
+.top-spending-item .item-name {
+    font-weight: 500;
+}
+.top-spending-item .item-percentage {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+.top-spending-item .item-amount {
+    font-weight: 600;
+    text-align: right;
+}
+
+.comparison-item {
+    grid-template-columns: 1fr auto;
+    font-size: 0.9rem;
+}
+.comparison-details {
+    display: flex;
+    flex-direction: column;
+}
+.comparison-amounts {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+.comparison-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+.comparison-change.increase {
+    color: var(--danger);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+.comparison-change.decrease {
+    color: var(--success);
+    background-color: rgba(16, 185, 129, 0.1);
+}
+.comparison-change.neutral {
+    color: var(--text-light);
+    background-color: var(--surface-light);
+}
+
+
 /* PWA Install Banner */
 .pwa-install-banner {
     background-color: var(--surface);

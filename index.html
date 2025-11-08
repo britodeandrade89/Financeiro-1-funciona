@@ -120,6 +120,10 @@
                     </div>
                     <div id="overviewChart"></div>
                 </div>
+
+                <div id="monthlyAnalysisSection" class="section">
+                    <!-- JS will populate this -->
+                </div>
             </div>
 
             <div id="view-lancamentos" class="app-view">
@@ -159,6 +163,17 @@
             </div>
 
             <div id="view-metas" class="app-view">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Metas de Poupança</h2>
+                        <button id="openAddSavingsGoalModalBtn" class="btn">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Nova Meta
+                        </button>
+                    </div>
+                    <div id="savingsGoalsList" class="goals-list"></div>
+                </div>
+
                  <div class="section">
                     <div class="section-header">
                         <h2 class="section-title">Metas de Gastos</h2>
@@ -407,6 +422,38 @@
                 <footer class="modal-footer">
                     <button type="button" id="cancelAccountBtn" class="btn btn-secondary">Cancelar</button>
                     <button type="submit" class="btn">Salvar Conta</button>
+                </footer>
+            </form>
+        </div>
+    </div>
+
+    <div id="savingsGoalModal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="savingsGoalModalTitle" class="modal-title">Nova Meta de Poupança</h2>
+                <button id="closeSavingsGoalModalBtn" class="action-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </header>
+            <form id="savingsGoalForm">
+                <input type="hidden" id="savingsGoalId" name="savingsGoalId">
+                <div class="form-group">
+                    <label for="savingsGoalDescription" class="form-label">Descrição da Meta</label>
+                    <input type="text" id="savingsGoalDescription" name="savingsGoalDescription" class="form-input" required placeholder="Ex: Viagem de Férias, Fundo de Emergência">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="savingsGoalCurrent" class="form-label">Valor Atual</label>
+                        <input type="text" id="savingsGoalCurrent" name="savingsGoalCurrent" class="form-input" required placeholder="R$ 0,00" inputmode="decimal">
+                    </div>
+                    <div class="form-group">
+                        <label for="savingsGoalTarget" class="form-label">Meta Final</label>
+                        <input type="text" id="savingsGoalTarget" name="savingsGoalTarget" class="form-input" required placeholder="R$ 0,00" inputmode="decimal">
+                    </div>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" id="cancelSavingsGoalBtn" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn">Salvar Meta</button>
                 </footer>
             </form>
         </div>

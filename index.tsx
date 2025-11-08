@@ -24,6 +24,7 @@ const ICONS = {
     lightbulb: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.09 16.05a2.41 2.41 0 0 1-2.41-2.41V10a4.69 4.69 0 0 0-9.38 0v3.64a2.41 2.41 0 0 1-2.41 2.41"></path><path d="M8.5 16.05V18a1.5 1.5 0 0 0 3 0v-1.95"></path><path d="M15.09 16.05a2.41 2.41 0 0 0 2.41-2.41V10a4.69 4.69 0 0 1 9.38 0v3.64a2.41 2.41 0 0 0 2.41 2.41"></path><path d="M17.5 16.05V18a1.5 1.5 0 0 1-3 0v-1.95"></path></svg>`,
     close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
     goal: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
+    savings: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>`,
     investment: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v4"></path><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"></path><path d="M12 12h.01"></path></svg>`,
     sync: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M22 11.5A10 10 0 0 0 3.5 12.5"/><path d="M2 12.5a10 10 0 0 0 18.5-1"/></svg>`,
     cloudUp: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L12 12M15 9l-3-3-3 3"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>`,
@@ -134,6 +135,9 @@ const initialMonthData = {
         { id: "goal_3", category: "saude", amount: 600 },
         { id: "goal_4", category: "dividas", amount: 1500 },
     ],
+    savingsGoals: [
+        { id: "sg_1", description: "Viagem de Férias", currentAmount: 1000, targetAmount: 5000 },
+    ],
     bankAccounts: [
         { id: "acc_1", name: "Conta Principal", balance: 150.32 },
         { id: "acc_2", name: "Poupança Viagem", balance: 1000.00 },
@@ -145,7 +149,7 @@ const initialMonthData = {
 // =================================================================================
 let ai = null; // Lazy initialized to prevent crash on load if process.env is not available
 let chat = null;
-let currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [] };
+let currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [], savingsGoals: [] };
 let currentModalType = '';
 let currentMonth = 11;
 let currentYear = 2025;
@@ -186,6 +190,7 @@ const elements = {
     goalsList: document.getElementById('goalsList'),
     bankAccountsList: document.getElementById('bankAccountsList'),
     overviewChart: document.getElementById('overviewChart'),
+    monthlyAnalysisSection: document.getElementById('monthlyAnalysisSection'),
     appContainer: document.getElementById('app-container'),
     mainContent: document.getElementById('main-content'),
     monthSelector: document.querySelector('.month-selector'),
@@ -194,6 +199,7 @@ const elements = {
     aiModal: document.getElementById('aiModal'),
     goalModal: document.getElementById('goalModal'),
     accountModal: document.getElementById('accountModal'),
+    savingsGoalModal: document.getElementById('savingsGoalModal'),
     addModalTitle: document.getElementById('addModalTitle'),
     addForm: document.getElementById('addForm'),
     typeGroup: document.getElementById('typeGroup'),
@@ -230,6 +236,13 @@ const elements = {
     accountId: document.getElementById('accountId'),
     accountName: document.getElementById('accountName'),
     accountBalance: document.getElementById('accountBalance'),
+    savingsGoalsList: document.getElementById('savingsGoalsList'),
+    savingsGoalModalTitle: document.getElementById('savingsGoalModalTitle'),
+    savingsGoalForm: document.getElementById('savingsGoalForm'),
+    savingsGoalId: document.getElementById('savingsGoalId'),
+    savingsGoalDescription: document.getElementById('savingsGoalDescription'),
+    savingsGoalCurrent: document.getElementById('savingsGoalCurrent'),
+    savingsGoalTarget: document.getElementById('savingsGoalTarget'),
     tabBar: document.getElementById('tab-bar'),
     tabButtons: document.querySelectorAll('.tab-btn'),
     appViews: document.querySelectorAll('.app-view'),
@@ -352,7 +365,9 @@ function loadDataForCurrentMonth() {
     firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             console.log(`[Firestore] Data received for ${monthKey}`);
-            currentMonthData = docSnap.data();
+            // Sanitize Firestore data to prevent circular reference errors
+            // by creating a deep copy that strips proxy objects.
+            currentMonthData = JSON.parse(JSON.stringify(docSnap.data()));
             updateUI();
         } else {
             console.log(`[Firestore] No data for ${monthKey}, creating new month.`);
@@ -380,7 +395,8 @@ async function createNewMonthData() {
     const prevDocRef = doc(db, 'users', currentUser.uid, 'months', previousMonthKey);
     const prevDocSnap = await getDoc(prevDocRef);
     if (prevDocSnap.exists()) {
-        baseData = prevDocSnap.data();
+        // Sanitize Firestore data to prevent circular reference errors.
+        baseData = JSON.parse(JSON.stringify(prevDocSnap.data()));
     }
     
     // If there's no previous data, and we're on the initial month, seed it.
@@ -391,7 +407,7 @@ async function createNewMonthData() {
     }
 
     if (!baseData || typeof baseData !== 'object') {
-        baseData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [] };
+        baseData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [], savingsGoals: [] };
     }
     
     const newMonthData = {
@@ -400,6 +416,7 @@ async function createNewMonthData() {
         shoppingItems: [],
         avulsosItems: [],
         goals: [],
+        savingsGoals: JSON.parse(JSON.stringify(baseData.savingsGoals || [])),
         bankAccounts: JSON.parse(JSON.stringify(baseData.bankAccounts || []))
     };
 
@@ -593,6 +610,7 @@ function updateUI() {
     renderGoalsPage();
     renderBankAccounts();
     renderOverviewChart();
+    renderMonthlyAnalysis();
 }
 
 function updateSummary() {
@@ -1025,6 +1043,11 @@ function closeEditModal() {
 // GOALS FEATURE
 // =================================================================================
 function renderGoalsPage() {
+    renderSavingsGoals();
+    renderSpendingGoals();
+}
+
+function renderSpendingGoals() {
     const userGoals = currentMonthData.goals || [];
     elements.goalsList.innerHTML = '';
 
@@ -1184,6 +1207,117 @@ function handleSaveGoal(event) {
 function deleteGoal(id) {
     if (confirm('Tem certeza que deseja excluir esta meta?')) {
         currentMonthData.goals = (currentMonthData.goals || []).filter(g => g.id !== id);
+        saveData();
+    }
+}
+
+// =================================================================================
+// SAVINGS GOALS FEATURE
+// =================================================================================
+function renderSavingsGoals() {
+    const savingsGoals = currentMonthData.savingsGoals || [];
+    elements.savingsGoalsList.innerHTML = '';
+
+    if (savingsGoals.length === 0) {
+        elements.savingsGoalsList.innerHTML = `<div class="empty-state">${ICONS.savings}<div>Crie metas de poupança para seus grandes objetivos, como uma viagem ou um fundo de emergência.</div></div>`;
+        return;
+    }
+
+    savingsGoals.forEach(goal => {
+        const percentage = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+        const remaining = goal.targetAmount - goal.currentAmount;
+        let progressBarClass = 'safe';
+        if (percentage > 75) progressBarClass = 'success';
+        else if (percentage > 40) progressBarClass = 'warning';
+
+        const card = document.createElement('div');
+        card.className = 'goal-card';
+
+        card.innerHTML = `
+            <div class="goal-card-header">
+                <div class="goal-card-title">
+                    ${ICONS.savings}
+                    <span>${goal.description}</span>
+                </div>
+                <div class="goal-card-actions">
+                    <button class="action-btn edit-savings-goal-btn" title="Editar Meta">${ICONS.edit}</button>
+                    <button class="action-btn delete-savings-goal-btn" title="Excluir Meta">${ICONS.delete}</button>
+                </div>
+            </div>
+            <div class="goal-card-body">
+                <div class="goal-amounts">
+                    <span class="goal-spent-amount">${formatCurrency(goal.currentAmount)}</span>
+                    <span class="goal-total-amount">de ${formatCurrency(goal.targetAmount)}</span>
+                </div>
+                <div class="goal-progress-bar">
+                    <div class="goal-progress-bar-inner ${progressBarClass}" style="width: ${Math.min(percentage, 100)}%;"></div>
+                </div>
+                <div class="goal-remaining safe">
+                    ${remaining > 0 ? `${formatCurrency(remaining)} restantes` : `Meta alcançada!`}
+                </div>
+            </div>
+        `;
+        
+        card.querySelector('.edit-savings-goal-btn').onclick = () => openSavingsGoalModal(goal.id);
+        card.querySelector('.delete-savings-goal-btn').onclick = () => deleteSavingsGoal(goal.id);
+        elements.savingsGoalsList.appendChild(card);
+    });
+}
+
+function openSavingsGoalModal(id = null) {
+    elements.savingsGoalForm.reset();
+    const existingGoal = id ? (currentMonthData.savingsGoals || []).find(g => g.id === id) : null;
+
+    if (existingGoal) {
+        elements.savingsGoalModalTitle.innerHTML = `${ICONS.edit} Editar Meta de Poupança`;
+        elements.savingsGoalId.value = existingGoal.id;
+        elements.savingsGoalDescription.value = existingGoal.description;
+        elements.savingsGoalCurrent.value = formatCurrency(existingGoal.currentAmount);
+        elements.savingsGoalTarget.value = formatCurrency(existingGoal.targetAmount);
+    } else {
+        elements.savingsGoalModalTitle.innerHTML = `${ICONS.add} Nova Meta de Poupança`;
+        elements.savingsGoalId.value = '';
+    }
+    openModal(elements.savingsGoalModal);
+}
+
+function closeSavingsGoalModal() {
+    closeModal(elements.savingsGoalModal);
+}
+
+function handleSaveSavingsGoal(event) {
+    event.preventDefault();
+    const id = elements.savingsGoalId.value;
+    const description = elements.savingsGoalDescription.value.trim();
+    const currentAmount = parseCurrency(elements.savingsGoalCurrent.value);
+    const targetAmount = parseCurrency(elements.savingsGoalTarget.value);
+
+    if (!description || isNaN(currentAmount) || isNaN(targetAmount) || targetAmount <= 0) {
+        alert("Por favor, preencha todos os campos com valores válidos.");
+        return;
+    }
+    
+    if (!currentMonthData.savingsGoals) currentMonthData.savingsGoals = [];
+
+    if (id) { // Editing
+        const goal = currentMonthData.savingsGoals.find(g => g.id === id);
+        if (goal) {
+            goal.description = description;
+            goal.currentAmount = currentAmount;
+            goal.targetAmount = targetAmount;
+        }
+    } else { // Adding
+        const newGoal = { id: `sg_${Date.now()}`, description, currentAmount, targetAmount };
+        currentMonthData.savingsGoals.push(newGoal);
+    }
+
+    saveData();
+    closeSavingsGoalModal();
+}
+
+function deleteSavingsGoal(id) {
+    if (confirm('Tem certeza que deseja excluir esta meta de poupança?')) {
+        currentMonthData.savingsGoals = (currentMonthData.savingsGoals || []).filter(g => g.id !== id);
         saveData();
     }
 }
@@ -1543,6 +1677,137 @@ function setupPWA() {
 }
 
 // =================================================================================
+// MONTHLY ANALYSIS
+// =================================================================================
+async function renderMonthlyAnalysis() {
+    elements.monthlyAnalysisSection.innerHTML = '';
+    elements.monthlyAnalysisSection.style.display = 'none';
+
+    if (!currentUser) return;
+
+    // Data for current month
+    const allCurrentExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    if (allCurrentExpenses.length === 0) return;
+
+    const currentCategoryTotals = allCurrentExpenses.reduce((acc, exp) => {
+        const catName = SPENDING_CATEGORIES[exp.category]?.name || 'Outros';
+        acc[catName] = (acc[catName] || 0) + exp.amount;
+        return acc;
+    }, {});
+    const totalCurrentSpending = allCurrentExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    // Get top spending categories
+    const topCategories = Object.entries(currentCategoryTotals)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);
+    
+    // Fetch previous month data
+    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+    const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, '0')}`;
+    const prevDocRef = doc(db, 'users', currentUser.uid, 'months', prevMonthKey);
+    const prevDocSnap = await getDoc(prevDocRef);
+    
+    let prevCategoryTotals = {};
+    if (prevDocSnap.exists()) {
+        const prevData = prevDocSnap.data();
+        const allPrevExpenses = [...(prevData.expenses || []), ...(prevData.shoppingItems || []), ...(prevData.avulsosItems || [])];
+        prevCategoryTotals = allPrevExpenses.reduce((acc, exp) => {
+            const catName = SPENDING_CATEGORIES[exp.category]?.name || 'Outros';
+            acc[catName] = (acc[catName] || 0) + exp.amount;
+            return acc;
+        }, {});
+    }
+
+    // Build HTML for Top Categories
+    let topCategoriesHTML = `
+        <div class="analysis-block">
+            <div class="analysis-block-title">${ICONS.shopping} Maiores Gastos do Mês</div>
+            <div class="top-spending-list">
+                ${topCategories.map(([name, amount]) => `
+                    <div class="top-spending-item">
+                        <div>${Object.values(SPENDING_CATEGORIES).find(c => c.name === name)?.icon || ICONS.variable}</div>
+                        <div class="item-info">
+                            <span class="item-name">${name}</span>
+                            <span class="item-percentage">${((amount / totalCurrentSpending) * 100).toFixed(0)}% do total</span>
+                        </div>
+                        <div class="item-amount">${formatCurrency(amount)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    // Build HTML for Comparison
+    let comparisonHTML = '';
+    if (Object.keys(prevCategoryTotals).length > 0) {
+        const comparisons = topCategories.map(([name, currentAmount]) => {
+            const prevAmount = prevCategoryTotals[name] || 0;
+            if (prevAmount === 0 && currentAmount > 0) {
+                 return { name, change: Infinity, currentAmount, prevAmount };
+            }
+            if(prevAmount === 0 && currentAmount === 0) {
+                return { name, change: 0, currentAmount, prevAmount };
+            }
+            const change = ((currentAmount - prevAmount) / prevAmount) * 100;
+            return { name, change, currentAmount, prevAmount };
+        });
+
+        comparisonHTML = `
+            <div class="analysis-block">
+                <div class="analysis-block-title">${ICONS.calendar} Comparativo com ${getMonthName(prevMonth)}</div>
+                <div class="comparison-list">
+                    ${comparisons.map(c => {
+                        let changeClass = 'neutral';
+                        let changeIcon = '';
+                        let changeText = 'Sem alteração';
+
+                        if (isFinite(c.change) && Math.abs(c.change) >= 1) {
+                            if (c.change > 0) {
+                                changeClass = 'increase';
+                                changeIcon = '▲';
+                                changeText = `+${c.change.toFixed(0)}%`;
+                            } else {
+                                changeClass = 'decrease';
+                                changeIcon = '▼';
+                                changeText = `${c.change.toFixed(0)}%`;
+                            }
+                        } else if (c.change === Infinity) {
+                            changeClass = 'increase';
+                            changeIcon = '▲';
+                            changeText = 'Novo Gasto';
+                        }
+                        
+                        return `
+                            <div class="comparison-item">
+                                <div class="comparison-details">
+                                    <span class="comparison-name">${c.name}</span>
+                                    <span class="comparison-amounts">${formatCurrency(c.currentAmount)} vs ${formatCurrency(c.prevAmount)}</span>
+                                </div>
+                                <div class="comparison-change ${changeClass}">
+                                    ${changeIcon} ${changeText}
+                                </div>
+                            </div>
+                        `
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    elements.monthlyAnalysisSection.innerHTML = `
+        <div class="section-header">
+            <h2 class="section-title">Análise Mensal Detalhada</h2>
+        </div>
+        <div class="analysis-content">
+            ${topCategoriesHTML}
+            ${comparisonHTML}
+        </div>
+    `;
+    elements.monthlyAnalysisSection.style.display = 'block';
+}
+
+// =================================================================================
 // INITIALIZATION
 // =================================================================================
 
@@ -1575,7 +1840,7 @@ function initializeFirebase() {
                     if (currentYear === 2025 && currentMonth === 11) {
                         currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
                     } else {
-                        currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [] };
+                        currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [], savingsGoals: [] };
                     }
                     updateMonthDisplay();
                     updateUI();
@@ -1618,7 +1883,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('amount'), 
         document.getElementById('editAmount'),
         document.getElementById('goalAmount'),
-        document.getElementById('accountBalance')
+        document.getElementById('accountBalance'),
+        document.getElementById('savingsGoalCurrent'),
+        document.getElementById('savingsGoalTarget')
     ];
     amountInputs.forEach(input => {
         if (input) {
@@ -1641,16 +1908,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('openAiModalBtnTab').addEventListener('click', openAiModal);
     
     // These listeners target elements inside the main content, which is replaced if Firebase is not configured.
-    // They also contained bugs, calling the wrong modal functions.
     if (isConfigured) {
         document.getElementById('openAddIncomeModalBtn').addEventListener('click', () => openAddModal('income'));
         document.getElementById('openAddExpenseModalBtn').addEventListener('click', () => openAddModal('expense'));
         document.getElementById('openAddShoppingModalBtn').addEventListener('click', () => openAddModal('shopping'));
         document.getElementById('openAddAvulsoModalBtn').addEventListener('click', () => openAddModal('avulso'));
         
-        // BUG FIX: Wire buttons to correct modal functions
         document.getElementById('openAddGoalModalBtn').addEventListener('click', () => openGoalModal());
         document.getElementById('openAddAccountModalBtn').addEventListener('click', () => openAccountModal());
+        document.getElementById('openAddSavingsGoalModalBtn').addEventListener('click', () => openSavingsGoalModal());
     
         elements.segmentedBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1692,11 +1958,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancelGoalBtn').addEventListener('click', closeGoalModal);
     document.getElementById('closeAccountModalBtn').addEventListener('click', closeAccountModal);
     document.getElementById('cancelAccountBtn').addEventListener('click', closeAccountModal);
+    document.getElementById('closeSavingsGoalModalBtn').addEventListener('click', closeSavingsGoalModal);
+    document.getElementById('cancelSavingsGoalBtn').addEventListener('click', closeSavingsGoalModal);
 
     elements.addForm.addEventListener('submit', handleAddItem);
     elements.editForm.addEventListener('submit', handleEditItem);
     elements.goalForm.addEventListener('submit', handleSaveGoal);
     elements.accountForm.addEventListener('submit', handleSaveAccount);
+    elements.savingsGoalForm.addEventListener('submit', handleSaveSavingsGoal);
 
     document.getElementById('type').addEventListener('change', (e) => {
         const isFixed = e.target.value === 'fixed';
