@@ -20,7 +20,7 @@ const ICONS = {
     shopping: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
     calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
     info: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
-    aiAnalysis: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-1.2 0-2.4.6-3 1.7A3.6 3.6 0 0 0 8.3 9c.5 1.1 1.4 2 2.7 2s2.2-.9 2.7-2c.1-.4.2-.8.3-1.3.6-1.1 0-2.3-1-3.1-.3-.2-.6-.3-1-.3z"></path><path d="M12 21c-1.2 0-2.4-.6-3-1.7A3.6 3.6 0 0 1 8.3 15c.5-1.1 1.4-2 2.7-2s2.2.9 2.7 2c.1.4.2.8.3 1.3.6 1.1 0 2.3-1 3.1-.3-.2-.6-.3-1 .3z"></path><path d="M3 12c0-1.2.6-2.4 1.7-3A3.6 3.6 0 0 1 9 8.3c1.1.5 2 1.4 2 2.7s-.9 2.2-2 2.7c-.4.1-.8.2-1.3.3-1.1.6-2.3 0-3.1-1 .2-.3-.3-.6-.3-1z"></path><path d="M21 12c0-1.2-.6-2.4-1.7-3A3.6 3.6 0 0 0 15 8.3c-1.1.5-2 1.4-2 2.7s.9 2.2 2 2.7c.4.1.8.2 1.3.3 1.1.6 2.3 0-3.1-1 .2-.3.3-.6-.3-1z"></path></svg>`,
+    aiAnalysis: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-1.2 0-2.4.6-3 1.7A3.6 3.6 0 0 0 8.3 9c.5 1.1 1.4 2 2.7 2s2.2-.9 2.7-2c.1-.4.2-.8.3-1.3.6-1.1 0-2.3-1-3.1-.3-.2-.6-.3-1-.3z"></path><path d="M12 21c-1.2 0-2.4-.6-3-1.7A3.6 3.6 0 0 1 8.3 15c.5-1.1 1.4-2 2.7-2s2.2.9 2.7 2c.1.4.2.8.3 1.3.6 1.1 0 2.3-1 3.1-.3-.2-.6-.3-1 .3z"></path><path d="M3 12c0-1.2.6-2.4 1.7-3A3.6 3.6 0 0 1 9 8.3c1.1.5 2 1.4 2 2.7s-.9 2.2-2 2.7c.4.1.8.2-1.3.3-1.1.6-2.3 0-3.1-1 .2-.3-.3-.6-.3-1z"></path><path d="M21 12c0-1.2-.6-2.4-1.7-3A3.6 3.6 0 0 0 15 8.3c-1.1.5-2 1.4-2 2.7s.9 2.2 2 2.7c.4.1.8.2 1.3.3 1.1.6 2.3 0-3.1-1 .2-.3.3-.6-.3-1z"></path></svg>`,
     lightbulb: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.09 16.05a2.41 2.41 0 0 1-2.41-2.41V10a4.69 4.69 0 0 0-9.38 0v3.64a2.41 2.41 0 0 1-2.41 2.41"></path><path d="M8.5 16.05V18a1.5 1.5 0 0 0 3 0v-1.95"></path><path d="M15.09 16.05a2.41 2.41 0 0 0 2.41-2.41V10a4.69 4.69 0 0 1 9.38 0v3.64a2.41 2.41 0 0 0 2.41 2.41"></path><path d="M17.5 16.05V18a1.5 1.5 0 0 1-3 0v-1.95"></path></svg>`,
     close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
     goal: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
@@ -173,14 +173,21 @@ const elements = {
     
     // Home screen cards
     finalBalance: document.getElementById('finalBalance'),
-    mainBalanceIncomes: document.getElementById('mainBalanceIncomes'),
-    mainBalanceExpenses: document.getElementById('mainBalanceExpenses'),
-    totalIncome: document.getElementById('totalIncome'),
-    totalIncomeProgressBar: document.getElementById('totalIncomeProgressBar'),
-    totalIncomeSubtitle: document.getElementById('totalIncomeSubtitle'),
-    monthlyDebts: document.getElementById('monthlyDebts'),
-    monthlyDebtsProgressBar: document.getElementById('monthlyDebtsProgressBar'),
-    monthlyDebtsSubtitle: document.getElementById('monthlyDebtsSubtitle'),
+    generalIncome: document.getElementById('generalIncome'),
+    generalIncomeProgressBar: document.getElementById('generalIncomeProgressBar'),
+    generalIncomeSubtitle: document.getElementById('generalIncomeSubtitle'),
+    salaryIncome: document.getElementById('salaryIncome'),
+    salaryIncomeProgressBar: document.getElementById('salaryIncomeProgressBar'),
+    salaryIncomeSubtitle: document.getElementById('salaryIncomeSubtitle'),
+    mumbucaIncome: document.getElementById('mumbucaIncome'),
+    mumbucaIncomeProgressBar: document.getElementById('mumbucaIncomeProgressBar'),
+    mumbucaIncomeSubtitle: document.getElementById('mumbucaIncomeSubtitle'),
+    generalExpenses: document.getElementById('generalExpenses'),
+    generalExpensesProgressBar: document.getElementById('generalExpensesProgressBar'),
+    generalExpensesSubtitle: document.getElementById('generalExpensesSubtitle'),
+    fixedVariableExpenses: document.getElementById('fixedVariableExpenses'),
+    fixedVariableExpensesProgressBar: document.getElementById('fixedVariableExpensesProgressBar'),
+    fixedVariableExpensesSubtitle: document.getElementById('fixedVariableExpensesSubtitle'),
 
     // Lists and other elements
     incomesList: document.getElementById('incomesList'),
@@ -614,26 +621,17 @@ function updateUI() {
 }
 
 function updateSummary() {
-    // Calculations
+    // Shared calculations
     const allIncomes = currentMonthData.incomes || [];
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const fixedVariableExpenses = currentMonthData.expenses || [];
 
-    const totalIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
+    // Card 1: Final Balance
     const paidIncomeAmount = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-
-    const totalExpensesAmount = allExpenses.reduce((sum, item) => sum + item.amount, 0);
-    const paidExpensesAmount = allExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-
-    const finalBalance = paidIncomeAmount - paidExpensesAmount; // A more realistic "current" balance
-
-    // Progress percentages
-    const incomeProgress = totalIncomeAmount > 0 ? (paidIncomeAmount / totalIncomeAmount) * 100 : 0;
-    const expenseProgress = totalExpensesAmount > 0 ? (paidExpensesAmount / totalExpensesAmount) * 100 : 0;
+    const paidGeneralExpensesAmount = allGeneralExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const finalBalance = paidIncomeAmount - paidGeneralExpensesAmount;
     
-    // Update Main Balance Card
     elements.finalBalance.textContent = formatCurrency(finalBalance);
-    elements.mainBalanceIncomes.textContent = formatCurrency(totalIncomeAmount);
-    elements.mainBalanceExpenses.textContent = formatCurrency(totalExpensesAmount);
     if (finalBalance >= 0) {
         elements.finalBalance.classList.add('balance-positive');
         elements.finalBalance.classList.remove('balance-negative');
@@ -642,15 +640,52 @@ function updateSummary() {
         elements.finalBalance.classList.remove('balance-positive');
     }
 
-    // Update Incomes Card
-    elements.totalIncome.textContent = formatCurrency(totalIncomeAmount);
-    elements.totalIncomeProgressBar.style.width = `${Math.min(incomeProgress, 100)}%`;
-    elements.totalIncomeSubtitle.textContent = `${formatCurrency(paidIncomeAmount)} recebidos`;
+    // Card 2: General Income (Salaries + Mumbuca)
+    const generalIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO') || i.description.toUpperCase().includes('MUMBUCA'));
+    const totalGeneralIncome = generalIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidGeneralIncome = generalIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const generalIncomeProgress = totalGeneralIncome > 0 ? (paidGeneralIncome / totalGeneralIncome) * 100 : 0;
+    
+    elements.generalIncome.textContent = formatCurrency(totalGeneralIncome);
+    elements.generalIncomeProgressBar.style.width = `${Math.min(generalIncomeProgress, 100)}%`;
+    elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos`;
 
-    // Update Expenses Card
-    elements.monthlyDebts.textContent = formatCurrency(totalExpensesAmount);
-    elements.monthlyDebtsProgressBar.style.width = `${Math.min(expenseProgress, 100)}%`;
-    elements.monthlyDebtsSubtitle.textContent = `${formatCurrency(paidExpensesAmount)} pagos`;
+    // Card 3: Salary Income
+    const salaryIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO'));
+    const totalSalaryIncome = salaryIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidSalaryIncome = salaryIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const salaryIncomeProgress = totalSalaryIncome > 0 ? (paidSalaryIncome / totalSalaryIncome) * 100 : 0;
+    
+    elements.salaryIncome.textContent = formatCurrency(totalSalaryIncome);
+    elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
+    elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos`;
+
+    // Card 4: Mumbuca Income
+    const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
+    const totalMumbucaIncome = mumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidMumbucaIncome = mumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const mumbucaIncomeProgress = totalMumbucaIncome > 0 ? (paidMumbucaIncome / totalMumbucaIncome) * 100 : 0;
+
+    elements.mumbucaIncome.textContent = formatCurrency(totalMumbucaIncome);
+    elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
+    elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(paidMumbucaIncome)} recebidos`;
+
+    // Card 5: General Expenses
+    const totalGeneralExpenses = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const generalExpensesProgress = totalGeneralExpenses > 0 ? (paidGeneralExpensesAmount / totalGeneralExpenses) * 100 : 0;
+    
+    elements.generalExpenses.textContent = formatCurrency(totalGeneralExpenses);
+    elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
+    elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos`;
+
+    // Card 6: Fixed & Variable Expenses
+    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
+    
+    elements.fixedVariableExpenses.textContent = formatCurrency(totalFixedVariableExpenses);
+    elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
+    elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos`;
 }
 
 

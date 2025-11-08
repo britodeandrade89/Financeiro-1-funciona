@@ -176,9 +176,9 @@ body {
 }
 
 /* Summary Cards */
-.summary-grid {
+.info-cards-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -223,9 +223,9 @@ body {
     font-weight: 600;
     margin-top: 0.25rem;
     margin-bottom: 0.75rem;
+    color: var(--text)
 }
-#totalIncome { color: var(--success); }
-#monthlyDebts { color: var(--warning); }
+#generalExpenses, #fixedVariableExpenses { color: var(--warning); }
 
 
 .summary-progress-bar {
@@ -267,30 +267,8 @@ body {
 .main-balance .summary-value {
     font-size: 2.5rem;
     font-weight: 700;
-    margin: 0.5rem 0 1.5rem;
+    margin: 0.5rem 0 0;
     line-height: 1.2;
-}
-.balance-details {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    border-top: 1px solid rgba(255,255,255,0.2);
-    padding-top: 1.5rem;
-}
-.balance-detail {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.balance-detail.income svg { color: var(--success); }
-.balance-detail.expense svg { color: var(--danger); }
-.balance-detail span {
-    font-size: 0.8rem;
-    opacity: 0.8;
-}
-.balance-detail strong {
-    font-size: 1rem;
-    font-weight: 600;
 }
 
 .balance-positive { color: white; }
@@ -1267,10 +1245,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         min-width: 130px;
         font-size: 1rem;
     }
-    .summary-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
 
     .item-primary-info {
         flex-wrap: wrap;
@@ -1288,10 +1262,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     .main-balance .summary-value {
         font-size: 2.2rem;
     }
-    
-    .balance-detail strong {
-        font-size: 1rem;
-    }
 
     .modal-content {
         width: 100%;
@@ -1306,5 +1276,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     @keyframes modalSlideUp { 
         from { transform: translateY(100%); } 
         to { transform: translateY(0); }
+    }
+}
+
+@media (min-width: 768px) {
+    .info-cards-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }
