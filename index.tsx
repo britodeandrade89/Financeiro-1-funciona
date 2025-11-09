@@ -236,6 +236,7 @@ const elements = {
     aiModalTitle: document.getElementById('aiModalTitle'),
     aiChatForm: document.getElementById('aiChatForm'),
     aiChatInput: document.getElementById('aiChatInput'),
+    generateSavingsSuggestionBtn: document.getElementById('generateSavingsSuggestionBtn'),
     goalModalTitle: document.getElementById('goalModalTitle'),
     goalForm: document.getElementById('goalForm'),
     goalId: document.getElementById('goalId'),
@@ -1527,10 +1528,9 @@ async function initializeAndStartChat() {
     document.getElementById('aiChatSendBtn').disabled = true;
     elements.aiChatInput.placeholder = "Inicializando IA...";
     elements.aiChatForm.removeEventListener('submit', handleAiChatSubmit);
+    elements.generateSavingsSuggestionBtn.removeEventListener('click', handleGenerateSavingsSuggestion);
 
     try {
-        // Lazy initialize the AI client. This prevents the app from crashing on load
-        // if the API key environment variable isn't set.
         if (!ai) {
              ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         }
@@ -1591,6 +1591,7 @@ async function initializeAndStartChat() {
     }
 
     elements.aiChatForm.addEventListener('submit', handleAiChatSubmit);
+    elements.generateSavingsSuggestionBtn.addEventListener('click', handleGenerateSavingsSuggestion);
 }
 
 async function openAiModal() {
@@ -1600,25 +1601,23 @@ async function openAiModal() {
 function closeAiModal() {
     closeModal(elements.aiModal);
     elements.aiChatForm.removeEventListener('submit', handleAiChatSubmit);
+    elements.generateSavingsSuggestionBtn.removeEventListener('click', handleGenerateSavingsSuggestion);
     chat = null;
 }
 
-async function handleAiChatSubmit(event) {
-    event.preventDefault();
+async function sendAiMessageAndStreamResponse(userInput) {
     if (!chat) {
         appendChatMessage('ai', 'A sessão com a IA não foi iniciada. Por favor, feche e abra a janela novamente.');
         return;
     }
-    const userInput = elements.aiChatInput.value.trim();
-    if (!userInput) return;
 
     appendChatMessage('user', userInput);
     elements.aiChatInput.value = '';
-    
+
     const sendButton = document.getElementById('aiChatSendBtn');
     elements.aiChatInput.disabled = true;
     sendButton.disabled = true;
-    
+
     const aiMessageEl = document.createElement('div');
     aiMessageEl.className = `chat-message ai-message`;
     const aiBubbleEl = document.createElement('div');
@@ -1654,6 +1653,20 @@ async function handleAiChatSubmit(event) {
         elements.aiChatInput.focus();
     }
 }
+
+
+async function handleAiChatSubmit(event) {
+    event.preventDefault();
+    const userInput = elements.aiChatInput.value.trim();
+    if (!userInput) return;
+    sendAiMessageAndStreamResponse(userInput);
+}
+
+function handleGenerateSavingsSuggestion() {
+    const prompt = "Com base nos meus dados financeiros deste mês, gere 3 sugestões práticas e acionáveis para reduzir gastos nas minhas categorias com maior volume de despesas.";
+    sendAiMessageAndStreamResponse(prompt);
+}
+
 
 function appendChatMessage(role, text) {
     const messageEl = document.createElement('div');
