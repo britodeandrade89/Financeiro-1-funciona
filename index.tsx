@@ -429,6 +429,13 @@ async function createNewMonthData() {
         bankAccounts: JSON.parse(JSON.stringify(baseData.bankAccounts || []))
     };
 
+    // Reset main account balance to 0 for the new month.
+    const mainAccount = newMonthData.bankAccounts.find(a => a.name === "Conta Principal");
+    if (mainAccount) {
+        mainAccount.balance = 0;
+    }
+
+
     newMonthData.incomes.push(
         { id: `inc_salario_marcelly_${Date.now()}`, description: 'SALARIO MARCELLY', amount: 3349.92, paid: false },
         { id: `inc_salario_andre_${Date.now()}`, description: 'SALARIO ANDRE', amount: 3349.92, paid: false },
@@ -1401,21 +1408,39 @@ function renderBankAccounts() {
     accounts.forEach(acc => {
         const item = document.createElement('div');
         item.className = 'account-item';
-        item.onclick = () => openAccountModal(acc.id);
+        const isSavingsAccount = acc.name === "Poupança Viagem";
+
+        if (isSavingsAccount) {
+            item.classList.add('read-only');
+        } else {
+            item.onclick = () => openAccountModal(acc.id);
+        }
+
+        let actionsHTML = `
+            <button class="action-btn edit-btn" title="Editar Saldo">${ICONS.edit}</button>
+            <button class="action-btn delete-btn" title="Excluir Conta">${ICONS.delete}</button>
+        `;
+        if (isSavingsAccount) {
+            actionsHTML = `<div class="goal-card-auto-info" title="Este saldo é atualizado automaticamente ao pagar o 'Investimento para Viagem'.">${ICONS.info}<span>Automático</span></div>`;
+        }
+
         item.innerHTML = `
             <div class="account-details">
                 <div class="account-name">${acc.name}</div>
                 <div class="account-balance">${formatCurrency(acc.balance)}</div>
             </div>
             <div class="account-actions">
-                <button class="action-btn edit-btn" title="Editar Saldo">${ICONS.edit}</button>
-                <button class="action-btn delete-btn" title="Excluir Conta">${ICONS.delete}</button>
+                ${actionsHTML}
             </div>
         `;
-        item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteAccount(acc.id); };
+
+        if (!isSavingsAccount) {
+            item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteAccount(acc.id); };
+        }
         listEl.appendChild(item);
     });
 }
+
 
 function openAccountModal(id = null) {
     elements.accountForm.reset();
