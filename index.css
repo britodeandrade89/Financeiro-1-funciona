@@ -26,7 +26,7 @@
 body {
     font-family: 'Poppins', sans-serif;
     background-color: var(--background);
-    background-image: linear-gradient(180deg, #115e59 0%, #18181b 30%);
+    background-image: linear-gradient(180deg, #115e59 0%, #18181b 65%);
     background-repeat: no-repeat;
     color: var(--text);
     line-height: 1.6;
@@ -1073,11 +1073,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     gap: 0.5rem;
 }
 
+#debtSummaryContainer {
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+}
+
 .debt-summary {
     background-color: var(--background);
     padding: 1.5rem;
     border-radius: 12px;
-    margin-top: 1.5rem;
     border: 1px solid var(--border);
 }
 

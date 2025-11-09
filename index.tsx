@@ -189,6 +189,7 @@ const elements = {
     fixedVariableExpenses: document.getElementById('fixedVariableExpenses'),
     fixedVariableExpensesProgressBar: document.getElementById('fixedVariableExpensesProgressBar'),
     fixedVariableExpensesSubtitle: document.getElementById('fixedVariableExpensesSubtitle'),
+    debtSummaryContainer: document.getElementById('debtSummaryContainer'),
 
     // Lists and other elements
     incomesList: document.getElementById('incomesList'),
@@ -644,20 +645,22 @@ function updateSummary() {
     const totalGeneralIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
     const paidGeneralIncome = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const generalIncomeProgress = totalGeneralIncome > 0 ? (paidGeneralIncome / totalGeneralIncome) * 100 : 0;
+    const remainingGeneralIncome = totalGeneralIncome - paidGeneralIncome;
     
     elements.generalIncome.textContent = formatCurrency(totalGeneralIncome);
     elements.generalIncomeProgressBar.style.width = `${Math.min(generalIncomeProgress, 100)}%`;
-    elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos`;
+    elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos / ${formatCurrency(remainingGeneralIncome)} a receber`;
 
     // Card 3: Salary Income
     const salaryIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO'));
     const totalSalaryIncome = salaryIncomes.reduce((sum, item) => sum + item.amount, 0);
     const paidSalaryIncome = salaryIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const salaryIncomeProgress = totalSalaryIncome > 0 ? (paidSalaryIncome / totalSalaryIncome) * 100 : 0;
-    
+    const remainingSalaryIncome = totalSalaryIncome - paidSalaryIncome;
+
     elements.salaryIncome.textContent = formatCurrency(totalSalaryIncome);
     elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
-    elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos`;
+    elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos / ${formatCurrency(remainingSalaryIncome)} a receber`;
 
     // Card 4: Mumbuca Income
     const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
@@ -695,6 +698,28 @@ function updateSummary() {
     elements.fixedVariableExpenses.textContent = formatCurrency(totalFixedVariableExpenses);
     elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
     elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos / ${formatCurrency(remainingFixedVariableExpenses)} a pagar`;
+
+    // Marcia Brito Debt Summary
+    const marciaBritoDebt = allGeneralExpenses
+        .filter(expense => expense.description.toUpperCase().includes('MARCIA BRITO'))
+        .reduce((sum, expense) => sum + expense.amount, 0);
+    
+    if (elements.debtSummaryContainer) {
+        if (marciaBritoDebt > 0) {
+            elements.debtSummaryContainer.innerHTML = `
+                <div class="debt-summary">
+                    <div class="debt-summary-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span>Total a pagar para</span>
+                    </div>
+                    <div class="debt-summary-title">Marcia Brito</div>
+                    <div class="debt-summary-amount">${formatCurrency(marciaBritoDebt)}</div>
+                </div>
+            `;
+        } else {
+            elements.debtSummaryContainer.innerHTML = '';
+        }
+    }
 }
 
 
@@ -869,23 +894,6 @@ function renderOverviewChart() {
         let overviewHTML = '';
         if (totalExpenses > 0) {
             overviewHTML += createPieChart();
-
-            const marciaBritoDebt = allExpenses
-                .filter(expense => expense.description.toUpperCase().includes('MARCIA BRITO'))
-                .reduce((sum, expense) => sum + expense.amount, 0);
-            
-            if (marciaBritoDebt > 0) {
-                overviewHTML += `
-                    <div class="debt-summary">
-                        <div class="debt-summary-header">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            <span>Total a pagar para</span>
-                        </div>
-                        <div class="debt-summary-title">Marcia Brito</div>
-                        <div class="debt-summary-amount">${formatCurrency(marciaBritoDebt)}</div>
-                    </div>
-                `;
-            }
         } else {
             overviewHTML = `
                 <div class="chart-placeholder">
@@ -1493,7 +1501,7 @@ async function initializeAndStartChat() {
         }
 
         chat = ai.chats.create({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-2.5-flash',
             config: {
                 systemInstruction: "Você é a 'IA Financeira', uma assistente especialista em finanças pessoais, amigável e perspicaz. Seu objetivo é ajudar o usuário a entender suas finanças, identificar padrões de gastos e encontrar oportunidades de economia. Suas respostas DEVEM ser em Português do Brasil. Baseie TODAS as suas respostas estritamente nos dados financeiros fornecidos no contexto da conversa. INSTRUÇÃO ESPECIAL E OBRIGATÓRIA: Sempre que identificar despesas contendo 'Marcia Brito' na descrição, você DEVE somar todos os valores e tratá-los como uma única dívida consolidada ao responder. Forneça conselhos claros, concisos e práticos. Utilize Markdown simples para formatação (ex: `**negrito**` e listas com `-`). Nunca inclua blocos de código JSON em suas respostas, a menos que seja explicitamente solicitado.",
             },
@@ -1501,7 +1509,7 @@ async function initializeAndStartChat() {
 
         const initialPrompt = `
         ## Dados Financeiros do Mês de ${getMonthName(currentMonth)}/${currentYear} (Formato JSON):
-        ${JSON.stringify(currentMonthData, null, 2)}
+        ${JSON.stringify(currentMonthData)}
         
         ## Tarefa
         A partir de agora, analise esses dados para responder às minhas perguntas.
@@ -1540,9 +1548,8 @@ async function initializeAndStartChat() {
         console.error("Error initializing AI Chat:", error);
         elements.aiAnalysis.innerHTML = '';
         let errorMessage = 'Ocorreu um erro ao inicializar a IA. Verifique sua conexão ou tente novamente mais tarde.';
-        // Check for common Vercel/environment variable error
-        if (error instanceof TypeError && (error.message.includes('process') || error.message.includes('env'))) {
-            errorMessage = '<strong>Erro de Configuração:</strong> A chave da API de IA não foi encontrada. O administrador precisa configurar a variável de ambiente `API_KEY` nas configurações do Vercel para que a Análise IA funcione.';
+        if (error.message.includes('API key')) {
+            errorMessage = '<strong>Erro de Configuração:</strong> A chave da API de IA não foi encontrada ou é inválida. O administrador precisa configurar corretamente a chave da API para que a Análise IA funcione.';
         }
         appendChatMessage('ai', errorMessage);
         elements.aiChatInput.placeholder = "Erro ao conectar com a IA";
