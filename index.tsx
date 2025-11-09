@@ -174,6 +174,7 @@ const elements = {
     
     // Home screen cards
     finalBalance: document.getElementById('finalBalance'),
+    projectedBalanceInfo: document.getElementById('projectedBalanceInfo'),
     generalIncome: document.getElementById('generalIncome'),
     generalIncomeProgressBar: document.getElementById('generalIncomeProgressBar'),
     generalIncomeSubtitle: document.getElementById('generalIncomeSubtitle'),
@@ -634,7 +635,7 @@ function updateSummary() {
     const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
     const fixedVariableExpenses = currentMonthData.expenses || [];
 
-    // Card 1: Final Balance
+    // Card 1: Final Balance & Projected Balance
     const paidIncomeAmount = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const paidGeneralExpensesAmount = allGeneralExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const finalBalance = paidIncomeAmount - paidGeneralExpensesAmount;
@@ -648,13 +649,22 @@ function updateSummary() {
         elements.finalBalance.classList.remove('balance-positive');
     }
 
-    // Card 2: General Income (All sources)
     const totalGeneralIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const totalGeneralExpenses = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const projectedBalance = totalGeneralIncome - totalGeneralExpenses;
+
+    if (elements.projectedBalanceInfo) {
+        elements.projectedBalanceInfo.textContent = `(Saldo projetado do mês: ${formatCurrency(projectedBalance)})`;
+    }
+
+
+    // Card 2: General Income (All sources)
+    const totalGeneralIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
     const paidGeneralIncome = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const generalIncomeProgress = totalGeneralIncome > 0 ? (paidGeneralIncome / totalGeneralIncome) * 100 : 0;
-    const remainingGeneralIncome = totalGeneralIncome - paidGeneralIncome;
+    const generalIncomeProgress = totalGeneralIncomeAmount > 0 ? (paidGeneralIncome / totalGeneralIncomeAmount) * 100 : 0;
+    const remainingGeneralIncome = totalGeneralIncomeAmount - paidGeneralIncome;
     
-    elements.generalIncome.textContent = formatCurrency(totalGeneralIncome);
+    elements.generalIncome.textContent = formatCurrency(totalGeneralIncomeAmount);
     elements.generalIncomeProgressBar.style.width = `${Math.min(generalIncomeProgress, 100)}%`;
     elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos / ${formatCurrency(remainingGeneralIncome)} a receber`;
 
@@ -688,11 +698,11 @@ function updateSummary() {
 
 
     // Card 5: General Expenses
-    const totalGeneralExpenses = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
-    const generalExpensesProgress = totalGeneralExpenses > 0 ? (paidGeneralExpensesAmount / totalGeneralExpenses) * 100 : 0;
-    const remainingGeneralExpenses = totalGeneralExpenses - paidGeneralExpensesAmount;
+    const totalGeneralExpensesAmount = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const generalExpensesProgress = totalGeneralExpensesAmount > 0 ? (paidGeneralExpensesAmount / totalGeneralExpensesAmount) * 100 : 0;
+    const remainingGeneralExpenses = totalGeneralExpensesAmount - paidGeneralExpensesAmount;
     
-    elements.generalExpenses.textContent = formatCurrency(totalGeneralExpenses);
+    elements.generalExpenses.textContent = formatCurrency(totalGeneralExpensesAmount);
     elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
     elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
 
