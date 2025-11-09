@@ -130,10 +130,11 @@ const initialMonthData = {
         { id: "avulso_1", description: 'Mercado', amount: 6.20, paid: true, paidDate: '2025-10-30', category: 'alimentacao'},
     ],
     goals: [
-        { id: "goal_1", category: "shopping", amount: 300 },
+        { id: "goal_1", category: "shopping", amount: 900 },
         { id: "goal_2", category: "moradia", amount: 1700 },
         { id: "goal_3", category: "saude", amount: 600 },
         { id: "goal_4", category: "dividas", amount: 1500 },
+        { id: "goal_5", category: "abastecimento_mumbuca", amount: 400 },
     ],
     savingsGoals: [
         { id: "sg_1", description: "Viagem de Férias", currentAmount: 1000, targetAmount: 5000 },
@@ -441,10 +442,9 @@ async function createNewMonthData() {
         );
     }
 
-    const totalMumbuca = 1300.00;
     newMonthData.goals.push(
-        { id: `goal_shopping_${Date.now()}`, category: 'shopping', amount: totalMumbuca * 0.70 },
-        { id: `goal_transporte_${Date.now()}`, category: 'transporte', amount: totalMumbuca * 0.30 }
+        { id: `goal_shopping_${Date.now()}`, category: 'shopping', amount: 900.00 },
+        { id: `goal_abastecimento_${Date.now()}`, category: 'abastecimento_mumbuca', amount: 400.00 }
     );
 
     const travelInvestment = (baseData.expenses || []).find(e => e.description.toUpperCase().includes('INVESTIMENTO PARA VIAGEM'));
@@ -453,7 +453,7 @@ async function createNewMonthData() {
     }
     
     const otherGoals = (baseData.goals || []).filter(g => 
-        g.category !== 'shopping' && g.category !== 'transporte' && g.category !== 'investimento'
+        g.category !== 'shopping' && g.category !== 'transporte' && g.category !== 'investimento' && g.category !== 'abastecimento_mumbuca'
     );
     newMonthData.goals.push(...JSON.parse(JSON.stringify(otherGoals)));
 
@@ -662,29 +662,39 @@ function updateSummary() {
     // Card 4: Mumbuca Income
     const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
     const totalMumbucaIncome = mumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidMumbucaIncome = mumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const mumbucaIncomeProgress = totalMumbucaIncome > 0 ? (paidMumbucaIncome / totalMumbucaIncome) * 100 : 0;
+    
+    const mumbucaSpending = allGeneralExpenses
+        .filter(item => item.category === 'shopping' || item.category === 'abastecimento_mumbuca')
+        .reduce((sum, item) => sum + item.amount, 0);
+    
+    const mumbucaProgress = totalMumbucaIncome > 0 ? (mumbucaSpending / totalMumbucaIncome) * 100 : 0;
+    const mumbucaAvailable = totalMumbucaIncome - mumbucaSpending;
 
     elements.mumbucaIncome.textContent = formatCurrency(totalMumbucaIncome);
-    elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
-    elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(paidMumbucaIncome)} recebidos`;
+    elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaProgress, 100)}%`;
+    elements.mumbucaIncomeProgressBar.classList.remove('income');
+    elements.mumbucaIncomeProgressBar.classList.add('expense');
+    elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(mumbucaSpending)} gastos / ${formatCurrency(mumbucaAvailable)} disponíveis`;
+
 
     // Card 5: General Expenses
     const totalGeneralExpenses = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
     const generalExpensesProgress = totalGeneralExpenses > 0 ? (paidGeneralExpensesAmount / totalGeneralExpenses) * 100 : 0;
+    const remainingGeneralExpenses = totalGeneralExpenses - paidGeneralExpensesAmount;
     
     elements.generalExpenses.textContent = formatCurrency(totalGeneralExpenses);
     elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
-    elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos`;
+    elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
 
     // Card 6: Fixed & Variable Expenses
     const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
     const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
+    const remainingFixedVariableExpenses = totalFixedVariableExpenses - paidFixedVariableExpenses;
     
     elements.fixedVariableExpenses.textContent = formatCurrency(totalFixedVariableExpenses);
     elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
-    elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos`;
+    elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos / ${formatCurrency(remainingFixedVariableExpenses)} a pagar`;
 }
 
 
@@ -1111,16 +1121,8 @@ function renderSpendingGoals() {
     allGoals.forEach(goal => {
         let spent = 0;
         
-        if (goal.category === 'shopping') {
-            // The 'Compras com Mumbuca' goal ONLY tracks items from the dedicated shopping list.
-            spent = (currentMonthData.shoppingItems || [])
-                .reduce((sum, item) => sum + item.amount, 0);
-        } else if (goal.category === 'avulsos') {
-            // The 'Avulsos' goal tracks the sum of ALL items in the avulsosItems list.
-            spent = (currentMonthData.avulsosItems || [])
-                .reduce((sum, item) => sum + item.amount, 0);
-        } else if (goal.category === 'abastecimento_mumbuca') {
-            // This goal tracks ALL entered items (paid or not) from any list with the matching category.
+        if (goal.category === 'shopping' || goal.category === 'abastecimento_mumbuca') {
+             // Mumbuca goals track ALL items (paid or not) from any list with the matching category.
             const allSpendingItems = [
                 ...(currentMonthData.expenses || []),
                 ...(currentMonthData.shoppingItems || []),
@@ -1128,6 +1130,10 @@ function renderSpendingGoals() {
             ];
             spent = allSpendingItems
                 .filter(item => item.category === goal.category)
+                .reduce((sum, item) => sum + item.amount, 0);
+        } else if (goal.category === 'avulsos') {
+            // The 'Avulsos' goal tracks the sum of ALL items in the avulsosItems list.
+            spent = (currentMonthData.avulsosItems || [])
                 .reduce((sum, item) => sum + item.amount, 0);
         } else {
             // All other goals track only PAID items.
