@@ -636,10 +636,21 @@ function updateSummary() {
     const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
     const fixedVariableExpenses = currentMonthData.expenses || [];
 
-    // Card 1: Final Balance & Projected Balance
-    const paidIncomeAmount = allIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const paidGeneralExpensesAmount = allGeneralExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const finalBalance = paidIncomeAmount - paidGeneralExpensesAmount;
+    // Card 1: Final Balance & Projected Balance - NEW LOGIC
+    // Balanço = (Salários Pagos - (Despesas Fixas/Variáveis Pagas, exceto poupança)) - Despesas Avulsas Pagas
+    const paidSalaryIncomeAmount = allIncomes
+        .filter(i => i.paid && i.description.toUpperCase().includes('SALARIO'))
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const paidFixedVariableExpensesAmount = (currentMonthData.expenses || [])
+        .filter(e => e.paid && !e.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM'))
+        .reduce((sum, e) => sum + e.amount, 0);
+        
+    const paidAvulsosAmount = (currentMonthData.avulsosItems || [])
+        .filter(item => item.paid)
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const finalBalance = (paidSalaryIncomeAmount - paidFixedVariableExpensesAmount) - paidAvulsosAmount;
     
     elements.finalBalance.textContent = formatCurrency(finalBalance);
     if (finalBalance >= 0) {
@@ -650,14 +661,23 @@ function updateSummary() {
         elements.finalBalance.classList.remove('balance-positive');
     }
 
-    const totalGeneralIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const totalGeneralExpenses = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
-    const projectedBalance = totalGeneralIncome - totalGeneralExpenses;
+    // Projected Balance consistent with the new logic
+    const totalSalaryIncomeAmount = allIncomes
+        .filter(i => i.description.toUpperCase().includes('SALARIO'))
+        .reduce((sum, item) => sum + item.amount, 0);
+    
+    const totalFixedVariableExpensesAmount = (currentMonthData.expenses || [])
+        .filter(e => !e.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM'))
+        .reduce((sum, e) => sum + e.amount, 0);
+    
+    const totalAvulsosAmount = (currentMonthData.avulsosItems || [])
+        .reduce((sum, item) => sum + item.amount, 0);
+        
+    const projectedBalance = (totalSalaryIncomeAmount - totalFixedVariableExpensesAmount) - totalAvulsosAmount;
 
     if (elements.projectedBalanceInfo) {
-        elements.projectedBalanceInfo.textContent = `(Saldo projetado do mês: ${formatCurrency(projectedBalance)})`;
+        elements.projectedBalanceInfo.textContent = `(Projeção do mês: ${formatCurrency(projectedBalance)})`;
     }
-
 
     // Card 2: General Income (All sources)
     const totalGeneralIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -699,6 +719,7 @@ function updateSummary() {
 
 
     // Card 5: General Expenses
+    const paidGeneralExpensesAmount = allGeneralExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const totalGeneralExpensesAmount = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0);
     const generalExpensesProgress = totalGeneralExpensesAmount > 0 ? (paidGeneralExpensesAmount / totalGeneralExpensesAmount) * 100 : 0;
     const remainingGeneralExpenses = totalGeneralExpensesAmount - paidGeneralExpensesAmount;
@@ -708,8 +729,8 @@ function updateSummary() {
     elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
 
     // Card 6: Fixed & Variable Expenses
-    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
     const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
     const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
     const remainingFixedVariableExpenses = totalFixedVariableExpenses - paidFixedVariableExpenses;
     
@@ -902,6 +923,71 @@ function createShoppingItem(itemData, type) {
     item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(itemData.id, type); };
     
     return item;
+}
+
+function createPieChart() {
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const totalExpenses = allExpenses.reduce((sum, item) => sum + item.amount, 0);
+
+    if (totalExpenses === 0) return '';
+
+    const spendingByCategory = allExpenses.reduce((acc, expense) => {
+        const category = expense.category || 'outros';
+        acc[category] = (acc[category] || 0) + expense.amount;
+        return acc;
+    }, {});
+
+    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
+    
+    const PIE_CHART_COLORS = ['#14b8a6', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280', '#fbbf24', '#f87171', '#60a5fa'];
+
+    // Generate SVG for the pie chart
+    let cumulativePercentage = 0;
+    const radius = 25;
+    const circumference = 2 * Math.PI * radius;
+    const svgCircles = sortedCategories.map(([categoryKey, amount], index) => {
+        const percentage = (amount / totalExpenses) * 100;
+        const arcLength = (percentage / 100) * circumference;
+        const rotation = cumulativePercentage * 3.6;
+        cumulativePercentage += percentage;
+        
+        return `<circle 
+            cx="50" cy="50" r="${radius}" 
+            fill="transparent" 
+            stroke="${PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]}" 
+            stroke-width="50" 
+            stroke-dasharray="${arcLength} ${circumference}" 
+            transform="rotate(${rotation - 90} 50 50)" 
+        />`;
+    }).join('');
+
+    const svg = `<svg viewBox="0 0 100 100" class="pie-chart">${svgCircles}</svg>`;
+
+    // Generate HTML for the legend
+    const legendHTML = sortedCategories.map(([categoryKey, amount], index) => {
+        const percentage = (amount / totalExpenses) * 100;
+        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: categoryKey, icon: ICONS.variable };
+        
+        return `
+            <div class="legend-item">
+                <div class="legend-label">
+                    <span class="legend-color" style="background-color: ${PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]}"></span>
+                    <span>${categoryInfo.name}</span>
+                </div>
+                <div class="legend-value">
+                    ${formatCurrency(amount)}
+                    <span class="legend-percentage">${percentage.toFixed(1)}%</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="pie-chart-container">
+            ${svg}
+            <div class="pie-chart-legend">${legendHTML}</div>
+        </div>
+    `;
 }
 
 function renderOverviewChart() {
@@ -1400,73 +1486,60 @@ function deleteSavingsGoal(id) {
 // =================================================================================
 function renderBankAccounts() {
     const accounts = currentMonthData.bankAccounts || [];
-    const listEl = elements.bankAccountsList;
-    listEl.innerHTML = '';
-
+    elements.bankAccountsList.innerHTML = '';
+    let totalBalance = 0;
+    
     if (accounts.length === 0) {
-        listEl.innerHTML = `<div class="empty-state-small">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            <span>Adicione suas contas para ver os saldos.</span>
-        </div>`;
-        document.getElementById('accounts-total-container').style.display = 'none';
-        return;
+        elements.bankAccountsList.innerHTML = `<div class="empty-state-small">${ICONS.info}<div>Nenhuma conta bancária adicionada.</div></div>`;
     }
 
-    document.getElementById('accounts-total-container').style.display = 'flex';
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    document.getElementById('accounts-total-amount').textContent = formatCurrency(totalBalance);
+    accounts.forEach(account => {
+        totalBalance += account.balance;
+        const isReadOnly = account.name === "Conta Principal" || account.name === "Poupança Viagem";
 
-    accounts.forEach(acc => {
         const item = document.createElement('div');
-        item.className = 'account-item';
-        const isSavingsAccount = acc.name === "Poupança Viagem";
-
-        if (isSavingsAccount) {
-            item.classList.add('read-only');
-        } else {
-            item.onclick = () => openAccountModal(acc.id);
-        }
-
+        item.className = `account-item ${isReadOnly ? 'read-only' : ''}`;
+        
         let actionsHTML = `
-            <button class="action-btn edit-btn" title="Editar Saldo">${ICONS.edit}</button>
-            <button class="action-btn delete-btn" title="Excluir Conta">${ICONS.delete}</button>
+            <button class="action-btn edit-account-btn" title="Editar Conta">${ICONS.edit}</button>
+            <button class="action-btn delete-account-btn" title="Excluir Conta">${ICONS.delete}</button>
         `;
-        if (isSavingsAccount) {
-            actionsHTML = `<div class="goal-card-auto-info" title="Este saldo é atualizado automaticamente ao pagar o 'Investimento para Viagem'.">${ICONS.info}<span>Automático</span></div>`;
+        if (isReadOnly) {
+            actionsHTML = `<div class="account-actions"><div class="goal-card-auto-info" title="Esta conta é gerenciada automaticamente pelo app.">${ICONS.info}<span>Automática</span></div></div>`;
         }
 
         item.innerHTML = `
             <div class="account-details">
-                <div class="account-name">${acc.name}</div>
-                <div class="account-balance">${formatCurrency(acc.balance)}</div>
+                <div class="account-name">${account.name}</div>
+                <div class="account-balance">${formatCurrency(account.balance)}</div>
             </div>
-            <div class="account-actions">
-                ${actionsHTML}
-            </div>
+            ${actionsHTML}
         `;
-
-        if (!isSavingsAccount) {
-            item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteAccount(acc.id); };
+        
+        if (!isReadOnly) {
+            item.onclick = () => openAccountModal(account.id);
+            item.querySelector('.edit-account-btn').onclick = (e) => { e.stopPropagation(); openAccountModal(account.id); };
+            item.querySelector('.delete-account-btn').onclick = (e) => { e.stopPropagation(); deleteAccount(account.id); };
         }
-        listEl.appendChild(item);
-    });
-}
 
+        elements.bankAccountsList.appendChild(item);
+    });
+
+    document.getElementById('accounts-total-amount').textContent = formatCurrency(totalBalance);
+}
 
 function openAccountModal(id = null) {
     elements.accountForm.reset();
     const existingAccount = id ? (currentMonthData.bankAccounts || []).find(a => a.id === id) : null;
 
     if (existingAccount) {
-        elements.accountModalTitle.innerHTML = `${ICONS.edit} Editar Saldo da Conta`;
+        elements.accountModalTitle.innerHTML = `${ICONS.edit} Editar Conta`;
         elements.accountId.value = existingAccount.id;
         elements.accountName.value = existingAccount.name;
         elements.accountBalance.value = formatCurrency(existingAccount.balance);
-        elements.accountName.disabled = true; // prevent name change
     } else {
-        elements.accountModalTitle.innerHTML = `${ICONS.add} Adicionar Conta Bancária`;
+        elements.accountModalTitle.innerHTML = `${ICONS.add} Nova Conta`;
         elements.accountId.value = '';
-        elements.accountName.disabled = false;
     }
     openModal(elements.accountModal);
 }
@@ -1482,19 +1555,23 @@ function handleSaveAccount(event) {
     const balance = parseCurrency(elements.accountBalance.value);
 
     if (!name || isNaN(balance)) {
-        alert('Por favor, preencha o nome da conta e um saldo válido.');
+        alert("Por favor, preencha todos os campos com valores válidos.");
+        return;
+    }
+    if (name === "Conta Principal" || name === "Poupança Viagem") {
+        alert("Este nome de conta é reservado para o sistema.");
         return;
     }
     
     if (!currentMonthData.bankAccounts) currentMonthData.bankAccounts = [];
 
-    if (id) { // Editing
+    if (id) { 
         const account = currentMonthData.bankAccounts.find(a => a.id === id);
         if (account) {
             account.name = name;
             account.balance = balance;
         }
-    } else { // Adding
+    } else { 
         const newAccount = { id: `acc_${Date.now()}`, name, balance };
         currentMonthData.bankAccounts.push(newAccount);
     }
@@ -1512,565 +1589,394 @@ function deleteAccount(id) {
 
 
 // =================================================================================
-// AI ANALYSIS & CHAT
+// AI ANALYSIS FEATURE
 // =================================================================================
-async function initializeAndStartChat() {
-    openModal(elements.aiModal);
-    elements.aiModalTitle.innerHTML = `${ICONS.aiAnalysis} IA Financeira`;
-    elements.aiAnalysis.innerHTML = `
-        <div id="ai-loading-state" class="loading">
-            <div class="spinner"></div>
-            <div>Analisando seus dados e preparando a IA...</div>
-        </div>
-    `;
-
-    elements.aiChatInput.disabled = true;
-    document.getElementById('aiChatSendBtn').disabled = true;
-    elements.aiChatInput.placeholder = "Inicializando IA...";
-    elements.aiChatForm.removeEventListener('submit', handleAiChatSubmit);
-    elements.generateSavingsSuggestionBtn.removeEventListener('click', handleGenerateSavingsSuggestion);
-
-    try {
-        if (!ai) {
-             ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+function getAiInstance() {
+    if (!ai) {
+        try {
+            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        } catch (e) {
+            console.error("Could not initialize GoogleGenAI. Is API_KEY set in process.env?", e);
+            appendAiMessage("Erro: A chave da API Gemini não foi configurada corretamente. Por favor, verifique as configurações.");
+            return null;
         }
+    }
+    return ai;
+}
 
+
+function generateDataSummary() {
+    const totalIncome = currentMonthData.incomes.reduce((s, i) => s + i.amount, 0);
+    const totalExpenses = currentMonthData.expenses.reduce((s, e) => s + e.amount, 0);
+    const totalShopping = currentMonthData.shoppingItems.reduce((s, i) => s + i.amount, 0);
+    const totalAvulsos = currentMonthData.avulsosItems.reduce((s, i) => s + i.amount, 0);
+    const expensesByCategory = [...currentMonthData.expenses, ...currentMonthData.shoppingItems, ...currentMonthData.avulsosItems].reduce((acc, e) => {
+        const categoryName = SPENDING_CATEGORIES[e.category]?.name || 'Outros';
+        acc[categoryName] = (acc[categoryName] || 0) + e.amount;
+        return acc;
+    }, {});
+
+    const sortedCategories = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a);
+
+    let summary = `Resumo Financeiro de ${getMonthName(currentMonth)}/${currentYear}:\n`;
+    summary += `- Renda Total: ${formatCurrency(totalIncome)}\n`;
+    summary += `- Total de Contas (Fixas/Variáveis): ${formatCurrency(totalExpenses)}\n`;
+    summary += `- Total de Compras Mumbuca: ${formatCurrency(totalShopping)}\n`;
+    summary += `- Total de Despesas Avulsas: ${formatCurrency(totalAvulsos)}\n`;
+    summary += `- Maiores gastos por categoria:\n`;
+    sortedCategories.slice(0, 5).forEach(([cat, amount]) => {
+        summary += `  - ${cat}: ${formatCurrency(amount)}\n`;
+    });
+    
+    return summary;
+}
+
+function appendUserMessage(message) {
+    elements.aiAnalysis.innerHTML += `
+        <div class="chat-message user-message">
+            <div class="message-bubble">${message}</div>
+        </div>`;
+    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
+}
+
+function appendAiMessage(message, isStreaming = false) {
+    const existingBubble = document.getElementById('ai-streaming-bubble');
+
+    if (isStreaming && existingBubble) {
+        existingBubble.innerHTML += message;
+    } else if (isStreaming) {
+        elements.aiAnalysis.innerHTML += `
+            <div class="chat-message ai-message">
+                <div class="message-bubble" id="ai-streaming-bubble">${message}</div>
+            </div>`;
+    } else {
+        if (existingBubble) {
+            existingBubble.removeAttribute('id'); // Finalize the bubble
+        }
+        elements.aiAnalysis.innerHTML += `
+            <div class="chat-message ai-message">
+                <div class="message-bubble">${message}</div>
+            </div>`;
+    }
+    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
+}
+
+
+async function getAiResponse(prompt) {
+    const genAI = getAiInstance();
+    if (!genAI) return;
+
+    if (!chat) {
+        const dataSummary = generateDataSummary();
+        const systemInstruction = `Você é um consultor financeiro amigável e prestativo para um casal. Analise os dados financeiros fornecidos e responda às perguntas de forma clara, concisa e com dicas práticas. Use markdown simples para formatação (negrito com **). O resumo financeiro do mês atual é:\n${dataSummary}`;
+        
         chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: "Você é a 'IA Financeira', uma assistente especialista em finanças pessoais, amigável e perspicaz. Seu objetivo é ajudar o usuário a entender suas finanças, identificar padrões de gastos e encontrar oportunidades de economia. Suas respostas DEVEM ser em Português do Brasil. Baseie TODAS as suas respostas estritamente nos dados financeiros fornecidos no contexto da conversa. INSTRUÇÃO ESPECIAL E OBRIGATÓRIA: Sempre que identificar despesas contendo 'Marcia Brito' na descrição, você DEVE somar todos os valores e tratá-los como uma única dívida consolidada ao responder. Forneça conselhos claros, concisos e práticos. Utilize Markdown simples para formatação (ex: `**negrito**` e listas com `-`). Nunca inclua blocos de código JSON em suas respostas, a menos que seja explicitamente solicitado.",
+                systemInstruction: systemInstruction,
             },
         });
+    }
 
-        const initialPrompt = `
-        ## Dados Financeiros do Mês de ${getMonthName(currentMonth)}/${currentYear} (Formato JSON):
-        ${JSON.stringify(currentMonthData)}
-        
-        ## Tarefa
-        A partir de agora, analise esses dados para responder às minhas perguntas.
+    appendUserMessage(prompt);
+    
+    // Create a placeholder for the AI response
+    appendAiMessage('<div class="spinner"></div>', true);
 
-        Olá! Como minha assistente financeira, por favor, apresente-se brevemente, confirme que você analisou meus dados do mês atual e me diga como pode me ajudar a entender minhas finanças.
-        `;
-
-        const responseStream = await chat.sendMessageStream({ message: initialPrompt });
-
-        const aiMessageEl = document.createElement('div');
-        aiMessageEl.className = `chat-message ai-message`;
-        const aiBubbleEl = document.createElement('div');
-        aiBubbleEl.className = 'message-bubble';
-        aiMessageEl.appendChild(aiBubbleEl);
-        
-        let fullResponseText = '';
+    try {
+        const responseStream = await chat.sendMessageStream({ message: prompt });
+        let fullResponse = "";
         let firstChunk = true;
+        
         for await (const chunk of responseStream) {
             if (firstChunk) {
-                const pieChartHTML = createPieChart();
-                elements.aiAnalysis.innerHTML = pieChartHTML;
-                elements.aiAnalysis.appendChild(aiMessageEl);
+                // Clear the spinner on the first chunk
+                document.getElementById('ai-streaming-bubble').innerHTML = '';
                 firstChunk = false;
             }
-            fullResponseText += chunk.text;
-            aiBubbleEl.innerHTML = simpleMarkdownToHtml(fullResponseText);
+            const chunkText = chunk.text;
+            fullResponse += chunkText;
+            document.getElementById('ai-streaming-bubble').innerHTML = simpleMarkdownToHtml(fullResponse);
             elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
         }
 
-        elements.aiChatInput.disabled = false;
-        document.getElementById('aiChatSendBtn').disabled = false;
-        elements.aiChatInput.placeholder = "Pergunte sobre suas finanças...";
-        elements.aiChatInput.focus();
+        const finalBubble = document.getElementById('ai-streaming-bubble');
+        if (finalBubble) {
+            finalBubble.removeAttribute('id');
+        }
 
     } catch (error) {
-        console.error("Error initializing AI Chat:", error);
-        elements.aiAnalysis.innerHTML = '';
-        let errorMessage = 'Ocorreu um erro ao inicializar a IA. Verifique sua conexão ou tente novamente mais tarde.';
-        if (error.message.includes('API key')) {
-            errorMessage = '<strong>Erro de Configuração:</strong> A chave da API de IA não foi encontrada ou é inválida. O administrador precisa configurar corretamente a chave da API para que a Análise IA funcione.';
+        console.error("Gemini API error:", error);
+        appendAiMessage("Desculpe, não consegui processar sua solicitação. Tente novamente.");
+        const finalBubble = document.getElementById('ai-streaming-bubble');
+        if (finalBubble) {
+            finalBubble.removeAttribute('id');
         }
-        appendChatMessage('ai', errorMessage);
-        elements.aiChatInput.placeholder = "Erro ao conectar com a IA";
     }
-
-    elements.aiChatForm.addEventListener('submit', handleAiChatSubmit);
-    elements.generateSavingsSuggestionBtn.addEventListener('click', handleGenerateSavingsSuggestion);
 }
 
-async function openAiModal() {
-    await initializeAndStartChat();
+function openAiModal() {
+    chat = null; // Reset chat session
+    elements.aiAnalysis.innerHTML = ''; 
+    appendAiMessage('Olá! Sou sua assistente financeira. Como posso ajudar a analisar suas finanças deste mês?');
+    openModal(elements.aiModal);
 }
 
 function closeAiModal() {
     closeModal(elements.aiModal);
-    elements.aiChatForm.removeEventListener('submit', handleAiChatSubmit);
-    elements.generateSavingsSuggestionBtn.removeEventListener('click', handleGenerateSavingsSuggestion);
-    chat = null;
 }
 
-async function sendAiMessageAndStreamResponse(userInput) {
-    if (!chat) {
-        appendChatMessage('ai', 'A sessão com a IA não foi iniciada. Por favor, feche e abra a janela novamente.');
+// =================================================================================
+// MONTHLY ANALYSIS (HOME SCREEN)
+// =================================================================================
+function renderMonthlyAnalysis() {
+    if (!elements.monthlyAnalysisSection) return;
+
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const totalSpent = allExpenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
+
+    if (totalSpent === 0) {
+        elements.monthlyAnalysisSection.style.display = 'none';
         return;
     }
-
-    appendChatMessage('user', userInput);
-    elements.aiChatInput.value = '';
-
-    const sendButton = document.getElementById('aiChatSendBtn');
-    elements.aiChatInput.disabled = true;
-    sendButton.disabled = true;
-
-    const aiMessageEl = document.createElement('div');
-    aiMessageEl.className = `chat-message ai-message`;
-    const aiBubbleEl = document.createElement('div');
-    aiBubbleEl.className = 'message-bubble';
-    aiMessageEl.appendChild(aiBubbleEl);
-    elements.aiAnalysis.appendChild(aiMessageEl);
-
-    aiBubbleEl.innerHTML = `<div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-
-    try {
-        const responseStream = await chat.sendMessageStream({ message: userInput });
-        
-        let fullResponseText = '';
-        let firstChunk = true;
-
-        for await (const chunk of responseStream) {
-            if (firstChunk) {
-                aiBubbleEl.innerHTML = ''; 
-                firstChunk = false;
-            }
-            fullResponseText += chunk.text;
-            aiBubbleEl.innerHTML = simpleMarkdownToHtml(fullResponseText);
-            elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-        }
-        
-    } catch(error) {
-        console.error("AI chat error:", error);
-        aiBubbleEl.innerHTML = simpleMarkdownToHtml('**Erro:** Desculpe, não consegui processar sua solicitação no momento. Tente novamente.');
-    } finally {
-        elements.aiChatInput.disabled = false;
-        sendButton.disabled = false;
-        elements.aiChatInput.focus();
-    }
-}
-
-
-async function handleAiChatSubmit(event) {
-    event.preventDefault();
-    const userInput = elements.aiChatInput.value.trim();
-    if (!userInput) return;
-    sendAiMessageAndStreamResponse(userInput);
-}
-
-function handleGenerateSavingsSuggestion() {
-    const prompt = "Com base nos meus dados financeiros deste mês, gere 3 sugestões práticas e acionáveis para reduzir gastos nas minhas categorias com maior volume de despesas.";
-    sendAiMessageAndStreamResponse(prompt);
-}
-
-
-function appendChatMessage(role, text) {
-    const messageEl = document.createElement('div');
-    messageEl.className = `chat-message ${role}-message`;
-
-    const bubbleEl = document.createElement('div');
-    bubbleEl.className = 'message-bubble';
     
-    bubbleEl.innerHTML = role === 'ai' ? simpleMarkdownToHtml(text) : text;
-    
-    messageEl.appendChild(bubbleEl);
-    elements.aiAnalysis.appendChild(messageEl);
-    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-}
+    elements.monthlyAnalysisSection.style.display = 'block';
 
-function createPieChart() {
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const total = allExpenses.reduce((s, e) => s + e.amount, 0);
-
-    if (total === 0) return '';
-    
-    const categoryTotals = {};
-    allExpenses.forEach(exp => {
-        const catName = SPENDING_CATEGORIES[exp.category]?.name || 'Outros';
-        if (!categoryTotals[catName]) {
-            categoryTotals[catName] = 0;
-        }
-        categoryTotals[catName] += exp.amount;
-    });
-
-    const colors = ['#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#a1a1aa', '#6366f1', '#10b981'];
-    let colorIndex = 0;
-
-    const categories = Object.entries(categoryTotals).map(([name, value]) => ({
-        name,
-        value,
-        color: colors[colorIndex++ % colors.length]
-    })).sort((a,b) => b.value - a.value);
-
-    let cumulativePercent = 0;
-    const paths = categories.map(cat => {
-        const percent = cat.value / total;
-        const startAngle = cumulativePercent * 360;
-        const endAngle = (cumulativePercent + percent) * 360;
-        cumulativePercent += percent;
-        
-        const largeArcFlag = percent > 0.5 ? 1 : 0;
-        const x1 = 50 + 45 * Math.cos(Math.PI * startAngle / 180);
-        const y1 = 50 + 45 * Math.sin(Math.PI * startAngle / 180);
-        const x2 = 50 + 45 * Math.cos(Math.PI * endAngle / 180);
-        const y2 = 50 + 45 * Math.sin(Math.PI * endAngle / 180);
-
-        return `<path d="M 50,50 L ${x1},${y1} A 45,45 0 ${largeArcFlag},1 ${x2},${y2} Z" fill="${cat.color}" />`;
-    }).join('');
-    
-    const legend = categories.map(cat => `
-        <div class="legend-item">
-            <div class="legend-label"><div class="legend-color" style="background-color:${cat.color}"></div>${cat.name}</div>
-            <div class="legend-value">${formatCurrency(cat.value)} <span class="legend-percentage">(${(cat.value / total * 100).toFixed(1)}%)</span></div>
-        </div>
-    `).join('');
-
-    return `
-        <div class="pie-chart-container">
-            <svg viewBox="0 0 100 100" class="pie-chart">${paths}</svg>
-            <div class="pie-chart-legend">${legend}</div>
-        </div>`;
-}
-
-// =================================================================================
-// PWA
-// =================================================================================
-function setupPWA() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(reg => console.log('Service Worker registered.', reg))
-                .catch(err => console.log('Service Worker registration failed: ', err));
-        });
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        const installBanner = document.getElementById('pwa-install-banner');
-        if(installBanner) installBanner.classList.add('visible');
-    });
-
-    document.getElementById('pwa-install-btn')?.addEventListener('click', () => {
-        const installBanner = document.getElementById('pwa-install-banner');
-        if (installBanner) installBanner.classList.remove('visible');
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(() => {
-                deferredPrompt = null;
-            });
-        }
-    });
-
-    document.getElementById('pwa-dismiss-btn')?.addEventListener('click', () => {
-        const installBanner = document.getElementById('pwa-install-banner');
-        if (installBanner) installBanner.classList.remove('visible');
-    });
-
-    window.addEventListener('appinstalled', () => {
-        const installBanner = document.getElementById('pwa-install-banner');
-        if (installBanner) installBanner.classList.remove('visible');
-    });
-}
-
-// =================================================================================
-// MONTHLY ANALYSIS
-// =================================================================================
-async function renderMonthlyAnalysis() {
-    elements.monthlyAnalysisSection.innerHTML = '';
-    elements.monthlyAnalysisSection.style.display = 'none';
-
-    if (!currentUser) return;
-
-    // Data for current month
-    const allCurrentExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    if (allCurrentExpenses.length === 0) return;
-
-    const currentCategoryTotals = allCurrentExpenses.reduce((acc, exp) => {
-        const catName = SPENDING_CATEGORIES[exp.category]?.name || 'Outros';
-        acc[catName] = (acc[catName] || 0) + exp.amount;
+    const spendingByCategory = allExpenses.filter(e => e.paid).reduce((acc, expense) => {
+        const category = expense.category || 'outros';
+        acc[category] = (acc[category] || 0) + expense.amount;
         return acc;
     }, {});
-    const totalCurrentSpending = allCurrentExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-
-    // Get top spending categories
-    const topCategories = Object.entries(currentCategoryTotals)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
     
-    // Fetch previous month data
-    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, '0')}`;
-    const prevDocRef = doc(db, 'users', currentUser.uid, 'months', prevMonthKey);
-    const prevDocSnap = await getDoc(prevDocRef);
-    
-    let prevCategoryTotals = {};
-    if (prevDocSnap.exists()) {
-        const prevData = prevDocSnap.data();
-        const allPrevExpenses = [...(prevData.expenses || []), ...(prevData.shoppingItems || []), ...(prevData.avulsosItems || [])];
-        prevCategoryTotals = allPrevExpenses.reduce((acc, exp) => {
-            const catName = SPENDING_CATEGORIES[exp.category]?.name || 'Outros';
-            acc[catName] = (acc[catName] || 0) + exp.amount;
-            return acc;
-        }, {});
-    }
+    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
 
-    // Build HTML for Top Categories
-    let topCategoriesHTML = `
-        <div class="analysis-block">
-            <div class="analysis-block-title">${ICONS.shopping} Maiores Gastos do Mês</div>
-            <div class="top-spending-list">
-                ${topCategories.map(([name, amount]) => `
-                    <div class="top-spending-item">
-                        <div>${Object.values(SPENDING_CATEGORIES).find(c => c.name === name)?.icon || ICONS.variable}</div>
-                        <div class="item-info">
-                            <span class="item-name">${name}</span>
-                            <span class="item-percentage">${((amount / totalCurrentSpending) * 100).toFixed(0)}% do total</span>
-                        </div>
-                        <div class="item-amount">${formatCurrency(amount)}</div>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-
-    // Build HTML for Comparison
-    let comparisonHTML = '';
-    if (Object.keys(prevCategoryTotals).length > 0) {
-        const comparisons = topCategories.map(([name, currentAmount]) => {
-            const prevAmount = prevCategoryTotals[name] || 0;
-            if (prevAmount === 0 && currentAmount > 0) {
-                 return { name, change: Infinity, currentAmount, prevAmount };
-            }
-            if(prevAmount === 0 && currentAmount === 0) {
-                return { name, change: 0, currentAmount, prevAmount };
-            }
-            const change = ((currentAmount - prevAmount) / prevAmount) * 100;
-            return { name, change, currentAmount, prevAmount };
-        });
-
-        comparisonHTML = `
-            <div class="analysis-block">
-                <div class="analysis-block-title">${ICONS.calendar} Comparativo com ${getMonthName(prevMonth)}</div>
-                <div class="comparison-list">
-                    ${comparisons.map(c => {
-                        let changeClass = 'neutral';
-                        let changeIcon = '';
-                        let changeText = 'Sem alteração';
-
-                        if (isFinite(c.change) && Math.abs(c.change) >= 1) {
-                            if (c.change > 0) {
-                                changeClass = 'increase';
-                                changeIcon = '▲';
-                                changeText = `+${c.change.toFixed(0)}%`;
-                            } else {
-                                changeClass = 'decrease';
-                                changeIcon = '▼';
-                                changeText = `${c.change.toFixed(0)}%`;
-                            }
-                        } else if (c.change === Infinity) {
-                            changeClass = 'increase';
-                            changeIcon = '▲';
-                            changeText = 'Novo Gasto';
-                        }
-                        
-                        return `
-                            <div class="comparison-item">
-                                <div class="comparison-details">
-                                    <span class="comparison-name">${c.name}</span>
-                                    <span class="comparison-amounts">${formatCurrency(c.currentAmount)} vs ${formatCurrency(c.prevAmount)}</span>
-                                </div>
-                                <div class="comparison-change ${changeClass}">
-                                    ${changeIcon} ${changeText}
-                                </div>
-                            </div>
-                        `
-                    }).join('')}
+    let topSpendingHTML = '<div class="top-spending-list">';
+    sortedCategories.slice(0, 3).forEach(([categoryKey, amount]) => {
+        const percentage = (amount / totalSpent) * 100;
+        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: categoryKey, icon: ICONS.variable };
+        topSpendingHTML += `
+            <div class="top-spending-item">
+                <div class="goal-card-title">${categoryInfo.icon}</div>
+                <div class="item-info">
+                    <span class="item-name">${categoryInfo.name}</span>
+                    <span class="item-percentage">${percentage.toFixed(1)}% do total gasto</span>
                 </div>
-            </div>
-        `;
-    }
+                <div class="item-amount">${formatCurrency(amount)}</div>
+            </div>`;
+    });
+    topSpendingHTML += '</div>';
 
     elements.monthlyAnalysisSection.innerHTML = `
         <div class="section-header">
-            <h2 class="section-title">Análise Mensal Detalhada</h2>
+            <h2 class="section-title">Análise do Mês</h2>
         </div>
         <div class="analysis-content">
-            ${topCategoriesHTML}
-            ${comparisonHTML}
-        </div>
-    `;
-    elements.monthlyAnalysisSection.style.display = 'block';
+            <div>
+                <div class="analysis-block-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l-10 5 10 5 10-5z"></path><path d="M2 17l10 5 10-5"></path></svg>
+                    Top 3 Categorias de Gastos
+                </div>
+                ${topSpendingHTML}
+            </div>
+            <button id="openAiModalBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                ${ICONS.aiAnalysis}
+                Perguntar à IA para mais detalhes
+            </button>
+        </div>`;
+        
+    document.getElementById('openAiModalBtn').addEventListener('click', openAiModal);
 }
+
+// =================================================================================
+// PWA INSTALL
+// =================================================================================
+function setupPwaInstall() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner) {
+            banner.classList.add('visible');
+        }
+    });
+
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) {
+                banner.classList.remove('visible');
+            }
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+            }
+        });
+    }
+
+    const dismissBtn = document.getElementById('pwa-dismiss-btn');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+             const banner = document.getElementById('pwa-install-banner');
+            if (banner) {
+                banner.classList.remove('visible');
+            }
+        });
+    }
+}
+
 
 // =================================================================================
 // INITIALIZATION
 // =================================================================================
-
-function initializeFirebase() {
-    if (isConfigured && auth) {
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                currentUser = user;
-                console.log("Authenticated anonymously with UID:", user.uid);
-                syncStatus = 'synced';
-                updateSyncButtonState();
-                updateProfilePage();
-                loadDataForCurrentMonth();
-            } else {
-                currentUser = null;
-                console.log("No user signed in. Attempting anonymous sign-in.");
-                signInAnonymously(auth).catch(error => {
-                    console.error("Anonymous sign-in failed:", error);
-                    syncStatus = 'error';
-                    
-                    if (error.code === 'auth/configuration-not-found') {
-                        syncErrorDetails = `<p><strong>Falha na autenticação anônima.</strong> Verifique se o método de login anônimo está ativado no seu painel do Firebase em Authentication > Sign-in method.</p>`;
-                    } else {
-                        syncErrorDetails = `<p>Falha na autenticação. Não é possível salvar os dados na nuvem.</p><p><strong>Erro:</strong> ${error.message}</p>`;
-                    }
-
-                    // Fallback to local mode if sign-in fails
-                    console.warn("Firebase sign-in failed. Initializing with local data.", error);
-                    currentUser = { uid: 'local-user', isAnonymous: true }; // Mock user
-                    if (currentYear === 2025 && currentMonth === 11) {
-                        currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
-                    } else {
-                        currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [], savingsGoals: [] };
-                    }
-                    updateMonthDisplay();
-                    updateUI();
-                    updateSyncButtonState();
-                    updateProfilePage();
-                });
-            }
-        });
-    } else {
-        // Firebase is not configured. App remains in a 'disconnected' state.
-        console.warn("Firebase not configured. Please update firebase-config.js to enable cloud sync.");
-        currentUser = null;
-        syncStatus = 'disconnected';
-        updateSyncButtonState();
-        updateProfilePage();
-        
-        elements.mainContent.innerHTML = `
-            <div class="empty-state">
-                ${ICONS.cloudOff}
-                <h2>Sincronização na Nuvem Desativada</h2>
-                <p style="max-width: 450px; line-height: 1.8;">Para salvar seus dados na nuvem e acessá-los de qualquer dispositivo, você precisa configurar o Firebase. Siga as instruções no arquivo <strong>firebase-config.js</strong>.</p>
-            </div>
-        `;
-        // Hide month selector as it's not usable
-        elements.monthSelector.style.display = 'none';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-    populateCategorySelects();
-    setupPWA();
-    initializeFirebase();
-    
-    // Only navigate to home if firebase is configured
-    if (isConfigured) {
-        navigateTo('home');
-    }
-    
-    const amountInputs = [
-        document.getElementById('amount'), 
-        document.getElementById('editAmount'),
-        document.getElementById('goalAmount'),
-        document.getElementById('accountBalance'),
-        document.getElementById('savingsGoalCurrent'),
-        document.getElementById('savingsGoalTarget')
-    ];
-    amountInputs.forEach(input => {
-        if (input) {
-            input.addEventListener('input', (e) => {
-                const target = e.target;
-                let value = target.value.replace(/\D/g, '');
-                if (value) {
-                    const numberValue = parseInt(value, 10) / 100;
-                    target.value = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numberValue);
-                } else {
-                    target.value = '';
-                }
-            });
+function initApp() {
+    // Event listeners
+    elements.tabButtons.forEach(btn => {
+        if (btn.dataset.view) {
+            btn.addEventListener('click', () => navigateTo(btn.dataset.view));
         }
     });
 
-    // --- EVENT LISTENERS ---
     document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
     document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
-    document.getElementById('openAiModalBtnTab').addEventListener('click', openAiModal);
+
+    // Modal buttons
+    document.getElementById('openAddIncomeModalBtn').addEventListener('click', () => openAddModal('income'));
+    document.getElementById('openAddExpenseModalBtn').addEventListener('click', () => openAddModal('expense'));
+    document.getElementById('openAddShoppingModalBtn').addEventListener('click', () => openAddModal('shopping'));
+    document.getElementById('openAddAvulsoModalBtn').addEventListener('click', () => openAddModal('avulso'));
+    document.getElementById('openAddGoalModalBtn').addEventListener('click', () => openGoalModal());
+    document.getElementById('openAddAccountModalBtn').addEventListener('click', () => openAccountModal());
+    document.getElementById('openAddSavingsGoalModalBtn').addEventListener('click', () => openSavingsGoalModal());
     
-    // These listeners target elements inside the main content, which is replaced if Firebase is not configured.
-    if (isConfigured) {
-        document.getElementById('openAddIncomeModalBtn').addEventListener('click', () => openAddModal('income'));
-        document.getElementById('openAddExpenseModalBtn').addEventListener('click', () => openAddModal('expense'));
-        document.getElementById('openAddShoppingModalBtn').addEventListener('click', () => openAddModal('shopping'));
-        document.getElementById('openAddAvulsoModalBtn').addEventListener('click', () => openAddModal('avulso'));
-        
-        document.getElementById('openAddGoalModalBtn').addEventListener('click', () => openGoalModal());
-        document.getElementById('openAddAccountModalBtn').addEventListener('click', () => openAccountModal());
-        document.getElementById('openAddSavingsGoalModalBtn').addEventListener('click', () => openSavingsGoalModal());
-    
-        elements.segmentedBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                elements.segmentedBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                const listId = btn.dataset.list;
-                document.getElementById('incomesList').style.display = listId === 'incomesList' ? 'block' : 'none';
-                document.getElementById('expensesList').style.display = listId === 'expensesList' ? 'block' : 'none';
-                document.getElementById('shoppingList').style.display = listId === 'shoppingList' ? 'block' : 'none';
-                document.getElementById('avulsosList').style.display = listId === 'avulsosList' ? 'block' : 'none';
-                
-                document.getElementById('openAddIncomeModalBtn').style.display = listId === 'incomesList' ? 'flex' : 'none';
-                document.getElementById('openAddExpenseModalBtn').style.display = listId === 'expensesList' ? 'flex' : 'none';
-                document.getElementById('openAddShoppingModalBtn').style.display = listId === 'shoppingList' ? 'flex' : 'none';
-                document.getElementById('openAddAvulsoModalBtn').style.display = listId === 'avulsosList' ? 'flex' : 'none';
-            });
-        });
-    }
-
-
-    elements.tabBar.addEventListener('click', (e) => {
-        const tabBtn = e.target.closest('.tab-btn');
-        if (tabBtn && tabBtn.dataset.view) {
-             // Do not allow navigation if Firebase is not configured, except to the profile page
-            if (!isConfigured && tabBtn.dataset.view !== 'perfil') {
-                return;
-            }
-            navigateTo(tabBtn.dataset.view);
-        }
-    });
-
-    document.getElementById('closeAddModalBtn').addEventListener('click', closeAddModal);
-    document.getElementById('cancelAddBtn').addEventListener('click', closeAddModal);
-    document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
-    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
-    document.getElementById('closeAiModalBtn').addEventListener('click', closeAiModal);
-    document.getElementById('closeGoalModalBtn').addEventListener('click', closeGoalModal);
-    document.getElementById('cancelGoalBtn').addEventListener('click', closeGoalModal);
-    document.getElementById('closeAccountModalBtn').addEventListener('click', closeAccountModal);
-    document.getElementById('cancelAccountBtn').addEventListener('click', closeAccountModal);
-    document.getElementById('closeSavingsGoalModalBtn').addEventListener('click', closeSavingsGoalModal);
-    document.getElementById('cancelSavingsGoalBtn').addEventListener('click', closeSavingsGoalModal);
-
     elements.addForm.addEventListener('submit', handleAddItem);
     elements.editForm.addEventListener('submit', handleEditItem);
     elements.goalForm.addEventListener('submit', handleSaveGoal);
     elements.accountForm.addEventListener('submit', handleSaveAccount);
     elements.savingsGoalForm.addEventListener('submit', handleSaveSavingsGoal);
+    
+    document.getElementById('cancelAddBtn').addEventListener('click', closeAddModal);
+    elements.addModal.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
+    document.getElementById('closeAddModalBtn').addEventListener('click', closeAddModal);
+    
+    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+    elements.editModal.addEventListener('click', (e) => { if(e.target.id === 'editModal') closeEditModal(); });
+    document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
 
-    document.getElementById('type').addEventListener('change', (e) => {
-        const isFixed = e.target.value === 'fixed';
-        document.getElementById('cyclicGroup').style.display = isFixed ? 'flex' : 'none';
-        document.getElementById('installmentsGroup').style.display = isFixed ? 'flex' : 'none';
+    document.getElementById('cancelGoalBtn').addEventListener('click', closeGoalModal);
+    elements.goalModal.addEventListener('click', (e) => { if(e.target.id === 'goalModal') closeGoalModal(); });
+    document.getElementById('closeGoalModalBtn').addEventListener('click', closeGoalModal);
+    
+    document.getElementById('cancelAccountBtn').addEventListener('click', closeAccountModal);
+    elements.accountModal.addEventListener('click', (e) => { if(e.target.id === 'accountModal') closeAccountModal(); });
+    document.getElementById('closeAccountModalBtn').addEventListener('click', closeAccountModal);
+    
+    document.getElementById('cancelSavingsGoalBtn').addEventListener('click', closeSavingsGoalModal);
+    elements.savingsGoalModal.addEventListener('click', (e) => { if(e.target.id === 'savingsGoalModal') closeSavingsGoalModal(); });
+    document.getElementById('closeSavingsGoalModalBtn').addEventListener('click', closeSavingsGoalModal);
+
+    // AI Modal
+    document.getElementById('openAiModalBtnTab').addEventListener('click', openAiModal);
+    document.getElementById('closeAiModalBtn').addEventListener('click', closeAiModal);
+    elements.aiModal.addEventListener('click', (e) => { if(e.target.id === 'aiModal') closeAiModal(); });
+    elements.aiChatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const prompt = elements.aiChatInput.value.trim();
+        if (prompt) {
+            getAiResponse(prompt);
+            elements.aiChatInput.value = '';
+        }
     });
+    elements.generateSavingsSuggestionBtn.addEventListener('click', () => {
+        getAiResponse('Com base nos meus dados, me dê 3 dicas práticas e específicas de como posso economizar dinheiro este mês.');
+    });
+
+    // Segmented control for lists
+    const listButtons = {
+        incomesList: document.getElementById('openAddIncomeModalBtn'),
+        expensesList: document.getElementById('openAddExpenseModalBtn'),
+        shoppingList: document.getElementById('openAddShoppingModalBtn'),
+        avulsosList: document.getElementById('openAddAvulsoModalBtn')
+    };
+
+    elements.segmentedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.segmentedBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const listId = btn.dataset.list;
+
+            Object.keys(listButtons).forEach(key => {
+                document.getElementById(key).style.display = (key === listId) ? '' : 'none';
+                listButtons[key].style.display = (key === listId) ? 'flex' : 'none';
+            });
+        });
+    });
+
+    // Currency input formatting
+    ['amount', 'editAmount', 'goalAmount', 'accountBalance', 'savingsGoalCurrent', 'savingsGoalTarget'].forEach(id => {
+        const input = document.getElementById(id);
+        if(input) {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.replace(/\D/g, '');
+                if (value) {
+                    const numberValue = parseInt(value, 10) / 100;
+                    e.target.value = formatCurrency(numberValue);
+                } else {
+                    e.target.value = '';
+                }
+            });
+        }
+    });
+
+    populateCategorySelects();
+    updateMonthDisplay();
+    setupPwaInstall();
+}
+
+window.addEventListener('load', async () => {
+    if ('serviceWorker' in navigator) {
+        try {
+            await navigator.serviceWorker.register('service-worker.js');
+            console.log('Service Worker registered successfully.');
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+
+    if (isConfigured) {
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                currentUser = user;
+                console.log("[Auth] User is signed in:", currentUser.uid);
+                loadDataForCurrentMonth();
+                updateSyncButtonState();
+            } else {
+                // User is signed out. Sign in anonymously.
+                try {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUser = userCredential.user;
+                    console.log("[Auth] Signed in anonymously:", currentUser.uid);
+                    loadDataForCurrentMonth(); // This will create initial data if none exists
+                } catch (error) {
+                    console.error("Anonymous sign-in failed:", error);
+                    syncStatus = 'error';
+                    syncErrorDetails = `Falha na autenticação. Verifique as regras de segurança do Firebase e se o método "Anônimo" está ativado.<br><br>Detalhes: <code>${error.message}</code>`;
+                    updateSyncButtonState();
+                    updateProfilePage();
+                }
+            }
+        });
+    } else {
+        // Fallback for local-only mode when Firebase isn't configured.
+        console.log("[App] Running in local-only mode.");
+        currentUser = { uid: 'local-user' }; // Mock user
+        syncStatus = 'disconnected';
+        currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+        updateUI();
+    }
+
+    initApp();
 });
