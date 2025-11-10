@@ -100,34 +100,13 @@ const initialMonthData = {
         
     ],
     avulsosItems: [
-        { id: "avulso_28", description: 'Correios', amount: 69.02, paid: true, paidDate: '2025-11-05', category: 'outros'},
-        { id: "avulso_27", description: 'Mercado', amount: 76.80, paid: true, paidDate: '2025-11-05', category: 'alimentacao'},
-        { id: "avulso_26", description: 'Pagamento a Gustavo dutra', amount: 40.00, paid: true, paidDate: '2025-11-05', category: 'outros'},
-        { id: "avulso_25", description: 'Farmácia', amount: 9.97, paid: true, paidDate: '2025-11-05', category: 'saude'},
-        { id: "avulso_24", description: 'Drogaria raia', amount: 9.99, paid: true, paidDate: '2025-11-05', category: 'saude'},
-        { id: "avulso_23", description: 'Drogaria', amount: 15.98, paid: true, paidDate: '2025-11-05', category: 'saude'},
-        { id: "avulso_22", description: 'Açar', amount: 4.99, paid: true, paidDate: '2025-11-05', category: 'alimentacao'},
-        { id: "avulso_21", description: 'Pix pra alguém', amount: 2.00, paid: true, paidDate: '2025-11-05', category: 'outros'},
-        { id: "avulso_20", description: 'Hortifruti', amount: 16.37, paid: true, paidDate: '2025-11-05', category: 'alimentacao'},
-        { id: "avulso_19", description: 'Drogaria', amount: 44.14, paid: true, paidDate: '2025-11-05', category: 'saude'},
-        { id: "avulso_18", description: 'Bar', amount: 94.97, paid: true, paidDate: '2025-11-04', category: 'lazer'},
-        { id: "avulso_17", description: 'Gás', amount: 95.00, paid: true, paidDate: '2025-11-04', category: 'moradia'},
-        { id: "avulso_16", description: 'Açar', amount: 26.00, paid: true, paidDate: '2025-11-03', category: 'alimentacao'},
-        { id: "avulso_15", description: 'Pedágio da ponte', amount: 6.20, paid: true, paidDate: '2025-11-03', category: 'transporte'},
-        { id: "avulso_14", description: 'Pipoca', amount: 14.00, paid: true, paidDate: '2025-11-03', category: 'alimentacao'},
-        { id: "avulso_13", description: 'Almoço mc-joao-joão', amount: 18.65, paid: true, paidDate: '2025-11-03', category: 'alimentacao'},
-        { id: "avulso_12", description: 'Mil opções fita e organizador de remédios', amount: 11.80, paid: true, paidDate: '2025-11-01', category: 'pessoal'},
-        { id: "avulso_11", description: 'Mercado', amount: 24.87, paid: true, paidDate: '2025-11-01', category: 'alimentacao'},
-        { id: "avulso_10", description: 'Adoçante', amount: 13.99, paid: true, paidDate: '2025-11-01', category: 'alimentacao'},
-        { id: "avulso_9", description: 'Hortifruti', amount: 31.66, paid: true, paidDate: '2025-11-01', category: 'alimentacao'},
-        { id: "avulso_8", description: 'Mercado cera', amount: 6.80, paid: true, paidDate: '2025-11-01', category: 'moradia'},
-        { id: "avulso_7", description: 'Abastecimento', amount: 155.84, paid: true, paidDate: '2025-10-30', category: 'transporte'},
-        { id: "avulso_6", description: 'Estacionamento', amount: 20.00, paid: true, paidDate: '2025-10-30', category: 'transporte'},
-        { id: "avulso_5", description: 'Pão e Mortadela', amount: 10.00, paid: true, paidDate: '2025-10-30', category: 'alimentacao'},
-        { id: "avulso_4", description: 'Troca da pulseira do relógio no mercado livre', amount: 94.84, paid: true, paidDate: '2025-10-30', category: 'pessoal'},
-        { id: "avulso_3", description: 'Mercado', amount: 100.00, paid: true, paidDate: '2025-10-30', category: 'alimentacao'},
-        { id: "avulso_2", description: 'Pedágio da ponte', amount: 6.20, paid: true, paidDate: '2025-10-30', category: 'transporte'},
-        { id: "avulso_1", description: 'Mercado', amount: 6.20, paid: true, paidDate: '2025-10-30', category: 'alimentacao'},
+        { id: "avulso_nov_1", description: 'Pedágio ponte', amount: 6.20, paid: true, paidDate: '2025-11-10', category: 'transporte'},
+        { id: "avulso_nov_2", description: "McDonald's", amount: 56.90, paid: true, paidDate: '2025-11-10', category: 'alimentacao'},
+        { id: "avulso_nov_3", description: 'Padaria', amount: 17.00, paid: true, paidDate: '2025-11-08', category: 'alimentacao'},
+        { id: "avulso_nov_4", description: 'Almoço do André com instrutores', amount: 30.00, paid: true, paidDate: '2025-11-08', category: 'alimentacao'},
+        { id: "avulso_nov_5", description: 'Pastel da Marcelly', amount: 32.00, paid: true, paidDate: '2025-11-08', category: 'alimentacao'},
+        { id: "avulso_nov_6", description: 'Correios', amount: 69.02, paid: true, paidDate: '2025-11-05', category: 'outros'},
+        { id: "avulso_nov_7", description: 'Mercado', amount: 76.80, paid: true, paidDate: '2025-11-05', category: 'alimentacao'},
     ],
     goals: [
         { id: "goal_1", category: "shopping", amount: 900 },
@@ -1938,7 +1917,7 @@ function initApp() {
 window.addEventListener('load', async () => {
     if ('serviceWorker' in navigator) {
         try {
-            await navigator.serviceWorker.register('service-worker.js');
+            await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
             console.log('Service Worker registered successfully.');
         } catch (error) {
             console.error('Service Worker registration failed:', error);
