@@ -152,20 +152,27 @@ const elements = {
     monthDisplay: document.getElementById('monthDisplay'),
     
     // Home screen cards
-    finalBalance: document.getElementById('finalBalance'),
-    projectedBalanceInfo: document.getElementById('projectedBalanceInfo'),
     generalIncome: document.getElementById('generalIncome'),
     generalIncomeProgressBar: document.getElementById('generalIncomeProgressBar'),
     generalIncomeSubtitle: document.getElementById('generalIncomeSubtitle'),
     salaryIncome: document.getElementById('salaryIncome'),
     salaryIncomeProgressBar: document.getElementById('salaryIncomeProgressBar'),
     salaryIncomeSubtitle: document.getElementById('salaryIncomeSubtitle'),
+    availableIncome: document.getElementById('availableIncome'),
+    availableIncomeProgressBar: document.getElementById('availableIncomeProgressBar'),
+    availableIncomeSubtitle: document.getElementById('availableIncomeSubtitle'),
     mumbucaIncome: document.getElementById('mumbucaIncome'),
     mumbucaIncomeProgressBar: document.getElementById('mumbucaIncomeProgressBar'),
     mumbucaIncomeSubtitle: document.getElementById('mumbucaIncomeSubtitle'),
     generalExpenses: document.getElementById('generalExpenses'),
     generalExpensesProgressBar: document.getElementById('generalExpensesProgressBar'),
     generalExpensesSubtitle: document.getElementById('generalExpensesSubtitle'),
+    debtsAndBills: document.getElementById('debtsAndBills'),
+    debtsAndBillsProgressBar: document.getElementById('debtsAndBillsProgressBar'),
+    debtsAndBillsSubtitle: document.getElementById('debtsAndBillsSubtitle'),
+    avulsosBudget: document.getElementById('avulsosBudget'),
+    avulsosBudgetProgressBar: document.getElementById('avulsosBudgetProgressBar'),
+    avulsosBudgetSubtitle: document.getElementById('avulsosBudgetSubtitle'),
     fixedVariableExpenses: document.getElementById('fixedVariableExpenses'),
     fixedVariableExpensesProgressBar: document.getElementById('fixedVariableExpensesProgressBar'),
     fixedVariableExpensesSubtitle: document.getElementById('fixedVariableExpensesSubtitle'),
@@ -309,9 +316,7 @@ function populateCategorySelects() {
 // DATA HANDLING (FIREBASE ONLY)
 // =================================================================================
 async function saveDataToFirestore() {
-    if (!currentUser || !isConfigured) {
-        return;
-    }
+    if (!currentUser || !isConfigured) return;
     if (isSyncing) return;
 
     isSyncing = true;
@@ -322,14 +327,17 @@ async function saveDataToFirestore() {
     const docRef = doc(db, 'users', currentUser.uid, 'months', monthKey);
 
     try {
-        // We save a deep copy to avoid any Firestore proxy issues with the local state
-        await setDoc(docRef, JSON.parse(JSON.stringify(currentMonthData)));
+        // Pass the state object directly to setDoc. The Firebase SDK handles serialization,
+        // which avoids the "Converting circular structure to JSON" error that can occur
+        // when trying to manually stringify Firebase's proxy objects.
+        await setDoc(docRef, currentMonthData);
         syncStatus = 'synced';
         updateLastSyncTime(true);
     } catch (error) {
         console.error("Error saving data to Firestore:", error);
         syncStatus = 'error';
-        alert("Não foi possível salvar os dados na nuvem. Verifique sua conexão com a internet.");
+        syncErrorDetails = "Não foi possível salvar os dados na nuvem. Verifique sua conexão e o formato dos dados.";
+        alert(syncErrorDetails);
     } finally {
         isSyncing = false;
         updateSyncButtonState();
@@ -355,8 +363,8 @@ function loadDataForCurrentMonth() {
     firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             console.log(`[Firestore] Data received for ${monthKey}`);
-            // Sanitize Firestore data to prevent circular reference errors
-            // by creating a deep copy that strips proxy objects.
+            // Sanitize Firestore data by creating a deep copy that strips proxy objects.
+            // This is crucial to prevent circular reference errors in the app's logic.
             currentMonthData = JSON.parse(JSON.stringify(docSnap.data()));
             updateUI();
         } else {
@@ -517,7 +525,7 @@ function updateProfilePage() {
          syncStatusText.style.color = 'var(--warning)';
          if (syncStatusInfo) syncStatusInfo.innerHTML = 'Enviando as últimas alterações para a nuvem...';
     } else if (syncStatus === 'error') {
-         syncStatusText.textContent = 'Erro de Configuração';
+         syncStatusText.textContent = 'Erro de Sincronização';
          syncStatusText.style.color = 'var(--danger)';
          if (syncStatusInfo) {
              if(syncErrorDetails) {
@@ -615,48 +623,10 @@ function updateSummary() {
     const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
     const fixedVariableExpenses = currentMonthData.expenses || [];
 
-    // Card 1: Final Balance & Projected Balance - NEW LOGIC
-    // Balanço = (Salários Pagos - (Despesas Fixas/Variáveis Pagas, exceto poupança)) - Despesas Avulsas Pagas
-    const paidSalaryIncomeAmount = allIncomes
-        .filter(i => i.paid && i.description.toUpperCase().includes('SALARIO'))
-        .reduce((sum, item) => sum + item.amount, 0);
-
-    const paidFixedVariableExpensesAmount = (currentMonthData.expenses || [])
-        .filter(e => e.paid && !e.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM'))
-        .reduce((sum, e) => sum + e.amount, 0);
-        
-    const paidAvulsosAmount = (currentMonthData.avulsosItems || [])
-        .filter(item => item.paid)
-        .reduce((sum, item) => sum + item.amount, 0);
-
-    const finalBalance = (paidSalaryIncomeAmount - paidFixedVariableExpensesAmount) - paidAvulsosAmount;
-    
-    elements.finalBalance.textContent = formatCurrency(finalBalance);
-    if (finalBalance >= 0) {
-        elements.finalBalance.classList.add('balance-positive');
-        elements.finalBalance.classList.remove('balance-negative');
-    } else {
-        elements.finalBalance.classList.add('balance-negative');
-        elements.finalBalance.classList.remove('balance-positive');
-    }
-
-    // Projected Balance consistent with the new logic
-    const totalSalaryIncomeAmount = allIncomes
-        .filter(i => i.description.toUpperCase().includes('SALARIO'))
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    const totalFixedVariableExpensesAmount = (currentMonthData.expenses || [])
-        .filter(e => !e.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM'))
-        .reduce((sum, e) => sum + e.amount, 0);
-    
-    const totalAvulsosAmount = (currentMonthData.avulsosItems || [])
-        .reduce((sum, item) => sum + item.amount, 0);
-        
-    const projectedBalance = (totalSalaryIncomeAmount - totalFixedVariableExpensesAmount) - totalAvulsosAmount;
-
-    if (elements.projectedBalanceInfo) {
-        elements.projectedBalanceInfo.textContent = `(Projeção do mês: ${formatCurrency(projectedBalance)})`;
-    }
+    // Find travel investment expense using its category for reliability
+    const travelInvestmentExpense = (currentMonthData.expenses || []).find(e => e.category === 'investimento');
+    const travelInvestmentAmount = travelInvestmentExpense ? travelInvestmentExpense.amount : 0;
+    const paidTravelInvestmentAmount = (travelInvestmentExpense && travelInvestmentExpense.paid) ? travelInvestmentExpense.amount : 0;
 
     // Card 2: General Income (All sources)
     const totalGeneralIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -678,6 +648,17 @@ function updateSummary() {
     elements.salaryIncome.textContent = formatCurrency(totalSalaryIncome);
     elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
     elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos / ${formatCurrency(remainingSalaryIncome)} a receber`;
+
+    // New Card: Available Income (after investment)
+    const totalAvailableIncome = totalGeneralIncomeAmount - travelInvestmentAmount;
+    const paidAvailableIncome = paidGeneralIncome - paidTravelInvestmentAmount;
+    const availableIncomeProgress = totalAvailableIncome > 0 ? (paidAvailableIncome / totalAvailableIncome) * 100 : 0;
+    const remainingAvailableIncome = totalAvailableIncome - paidAvailableIncome;
+
+    elements.availableIncome.textContent = formatCurrency(totalAvailableIncome);
+    elements.availableIncomeProgressBar.style.width = `${Math.min(availableIncomeProgress, 100)}%`;
+    elements.availableIncomeSubtitle.textContent = `${formatCurrency(paidAvailableIncome)} disponíveis / ${formatCurrency(remainingAvailableIncome)} a receber`;
+
 
     // Card 4: Mumbuca Income
     const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
@@ -707,7 +688,35 @@ function updateSummary() {
     elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
     elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
 
-    // Card 6: Fixed & Variable Expenses
+    // New Card: Debts & Bills (General Expenses without investment)
+    const totalDebtsAndBills = totalGeneralExpensesAmount - travelInvestmentAmount;
+    const paidDebtsAndBills = paidGeneralExpensesAmount - paidTravelInvestmentAmount;
+    const debtsAndBillsProgress = totalDebtsAndBills > 0 ? (paidDebtsAndBills / totalDebtsAndBills) * 100 : 0;
+    const remainingDebtsAndBills = totalDebtsAndBills - paidDebtsAndBills;
+
+    elements.debtsAndBills.textContent = formatCurrency(totalDebtsAndBills);
+    elements.debtsAndBillsProgressBar.style.width = `${Math.min(debtsAndBillsProgress, 100)}%`;
+    elements.debtsAndBillsSubtitle.textContent = `${formatCurrency(paidDebtsAndBills)} pagos / ${formatCurrency(remainingDebtsAndBills)} a pagar`;
+
+    // Card 6: Avulsos Budget / Estimativa de Saldo
+    const spentOnAvulsos = (currentMonthData.avulsosItems || []).reduce((sum, item) => sum + item.amount, 0);
+    const totalPlannedExpenses = (currentMonthData.expenses || []).reduce((sum, item) => sum + item.amount, 0);
+    const avulsosBudgetAmount = totalSalaryIncome - totalPlannedExpenses;
+    const avulsosBudgetProgress = avulsosBudgetAmount > 0 ? (spentOnAvulsos / avulsosBudgetAmount) * 100 : (spentOnAvulsos > 0 ? 100 : 0);
+    const remainingAvulsosBudget = avulsosBudgetAmount - spentOnAvulsos;
+
+    elements.avulsosBudget.textContent = formatCurrency(avulsosBudgetAmount);
+    elements.avulsosBudgetProgressBar.style.width = `${Math.min(avulsosBudgetProgress, 100)}%`;
+    elements.avulsosBudgetSubtitle.textContent = `${formatCurrency(spentOnAvulsos)} gastos / ${formatCurrency(remainingAvulsosBudget)} disponíveis`;
+    if (avulsosBudgetAmount < 0 || remainingAvulsosBudget < 0) {
+        elements.avulsosBudget.classList.add('balance-negative');
+        elements.avulsosBudget.classList.remove('balance-positive');
+    } else {
+        elements.avulsosBudget.classList.add('balance-positive');
+        elements.avulsosBudget.classList.remove('balance-negative');
+    }
+
+    // Card 7: Fixed & Variable Expenses
     const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
     const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
@@ -814,7 +823,6 @@ function createIncomeItem(income, type) {
 
 function createExpenseItem(expense, type) {
     const item = document.createElement('div');
-    const isFinal = expense.current === expense.total;
     const isOverdue = expense.dueDate && !expense.paid && new Date(expense.dueDate) < new Date();
     
     let dateInfo = '';
@@ -824,7 +832,7 @@ function createExpenseItem(expense, type) {
         dateInfo = `<span class="item-due-date ${isOverdue ? 'overdue' : ''}">${ICONS.calendar} Vence em ${formatDate(expense.dueDate)}</span>`;
     }
 
-    const isInvestment = expense.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM');
+    const isInvestment = expense.category === 'investimento';
     const checkTitle = isInvestment
         ? (expense.paid ? 'Cancelar Check-in do Investimento' : 'Fazer Check-in do Investimento')
         : (expense.paid ? 'Marcar como pendente' : 'Marcar como pago');
@@ -838,938 +846,669 @@ function createExpenseItem(expense, type) {
             <div class="item-primary-info">
                 <div class="item-description ${expense.paid ? 'paid' : ''}">${expense.description}</div>
                 <div class="item-actions">
-                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
-                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
+                    <span class="item-amount expense-amount">${formatCurrency(expense.amount)}</span>
                 </div>
             </div>
             <div class="item-secondary-info">
                  <div class="item-meta">
-                    <span class="item-type type-${expense.type}">${expense.type === 'fixed' ? 'Fixo' : 'Variável'}</span>
-                    ${expense.total > 1 ? `<span class="item-installments ${isFinal ? 'final-installment' : ''}">${expense.current}/${expense.total}</span>` : ''}
-                </div>
-                <div class="item-amount expense-amount">${formatCurrency(expense.amount)}</div>
-            </div>
-            <div class="item-tertiary-info">
-                ${dateInfo}
+                    <span class="item-type">${SPENDING_CATEGORIES[expense.category]?.icon || ''} ${SPENDING_CATEGORIES[expense.category]?.name || expense.category}</span>
+                    ${expense.total > 1 ? `<span class="item-installments">${expense.current}/${expense.total}</span>` : ''}
+                    ${dateInfo}
+                 </div>
+                 <div class="item-actions">
+                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
+                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
+                 </div>
             </div>
         </div>
     `;
-
     item.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(expense.id, type); };
     item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(expense.id, type); };
     item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(expense.id, type); };
-    
     return item;
 }
 
-function createShoppingItem(itemData, type) {
-    const item = document.createElement('div');
-    const isOverdue = itemData.dueDate && !itemData.paid && new Date(itemData.dueDate) < new Date();
-
-    let dateInfo = '';
-    if (itemData.paid && itemData.paidDate) {
-        dateInfo = `<span class="item-paid-date">${ICONS.check} Pago em ${formatDate(itemData.paidDate)}</span>`;
-    } else if (itemData.dueDate) {
-        dateInfo = `<span class="item-due-date ${isOverdue ? 'overdue' : ''}">${ICONS.calendar} Vence em ${formatDate(itemData.dueDate)}</span>`;
-    }
+function createShoppingItem(item, type) {
+    const listItem = document.createElement('div');
+    listItem.className = 'item';
+    listItem.onclick = () => openEditModal(item.id, type);
     
-    const checkTitle = itemData.paid ? 'Marcar como pendente' : 'Marcar como pago';
+    const categoryInfo = SPENDING_CATEGORIES[item.category];
+    const categoryHtml = categoryInfo ? `<span class="item-type">${categoryInfo.icon} ${categoryInfo.name}</span>` : '';
+    const dateHtml = item.paidDate ? `<span class="item-paid-date">${ICONS.calendar} ${formatDate(item.paidDate)}</span>` : '';
 
-    item.className = 'item';
-    item.onclick = () => openEditModal(itemData.id, type);
-    
-    item.innerHTML = `
-        <button class="check-btn ${itemData.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
-        <div class="item-info-wrapper">
+    listItem.innerHTML = `
+        <div class="item-info-wrapper" style="gap: 0.25rem;">
             <div class="item-primary-info">
-                <div class="item-description ${itemData.paid ? 'paid' : ''}">${itemData.description}</div>
+                <div class="item-description">${item.description}</div>
                 <div class="item-actions">
+                    <span class="item-amount expense-amount">${formatCurrency(item.amount)}</span>
                     <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
                     <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
                 </div>
             </div>
             <div class="item-secondary-info">
-                 <div class="item-meta">
-                    ${dateInfo}
+                <div class="item-meta">
+                    ${categoryHtml}
+                    ${dateHtml}
                 </div>
-                <div class="item-amount expense-amount">${formatCurrency(itemData.amount)}</div>
             </div>
         </div>
     `;
 
-    item.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(itemData.id, type); };
-    item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(itemData.id, type); };
-    item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(itemData.id, type); };
-    
-    return item;
+    listItem.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(item.id, type); };
+    listItem.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(item.id, type); };
+    return listItem;
 }
 
-function createPieChart() {
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const totalExpenses = allExpenses.reduce((sum, item) => sum + item.amount, 0);
-
-    if (totalExpenses === 0) return '';
-
-    const spendingByCategory = allExpenses.reduce((acc, expense) => {
-        const category = expense.category || 'outros';
-        acc[category] = (acc[category] || 0) + expense.amount;
-        return acc;
-    }, {});
-
-    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
-    
-    const PIE_CHART_COLORS = ['#14b8a6', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280', '#fbbf24', '#f87171', '#60a5fa'];
-
-    // Generate SVG for the pie chart
-    let cumulativePercentage = 0;
-    const radius = 25;
-    const circumference = 2 * Math.PI * radius;
-    const svgCircles = sortedCategories.map(([categoryKey, amount], index) => {
-        const percentage = (amount / totalExpenses) * 100;
-        const arcLength = (percentage / 100) * circumference;
-        const rotation = cumulativePercentage * 3.6;
-        cumulativePercentage += percentage;
-        
-        return `<circle 
-            cx="50" cy="50" r="${radius}" 
-            fill="transparent" 
-            stroke="${PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]}" 
-            stroke-width="50" 
-            stroke-dasharray="${arcLength} ${circumference}" 
-            transform="rotate(${rotation - 90} 50 50)" 
-        />`;
-    }).join('');
-
-    const svg = `<svg viewBox="0 0 100 100" class="pie-chart">${svgCircles}</svg>`;
-
-    // Generate HTML for the legend
-    const legendHTML = sortedCategories.map(([categoryKey, amount], index) => {
-        const percentage = (amount / totalExpenses) * 100;
-        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: categoryKey, icon: ICONS.variable };
-        
-        return `
-            <div class="legend-item">
-                <div class="legend-label">
-                    <span class="legend-color" style="background-color: ${PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]}"></span>
-                    <span>${categoryInfo.name}</span>
-                </div>
-                <div class="legend-value">
-                    ${formatCurrency(amount)}
-                    <span class="legend-percentage">${percentage.toFixed(1)}%</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    return `
-        <div class="pie-chart-container">
-            ${svg}
-            <div class="pie-chart-legend">${legendHTML}</div>
-        </div>
-    `;
-}
-
-function renderOverviewChart() {
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const totalExpenses = allExpenses.reduce((s, e) => s + e.amount, 0);
-
-    if (elements.overviewChart) {
-        let overviewHTML = '';
-        if (totalExpenses > 0) {
-            overviewHTML += createPieChart();
-        } else {
-            overviewHTML = `
-                <div class="chart-placeholder">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
-                    Sem dados de despesas para exibir o gráfico.
-                </div>
-            `;
-        }
-        elements.overviewChart.innerHTML = overviewHTML;
-    }
-}
-
-// =================================================================================
-// EVENT HANDLERS & ACTIONS
-// =================================================================================
-function togglePaid(id, type) {
-    const items = currentMonthData[type] || [];
-    const item = items.find(i => i.id === id);
-    if (item) {
-        item.paid = !item.paid;
-        
-        if (item.paid) {
-            item.paidDate = new Date().toISOString().split('T')[0];
-        } else {
-            item.paidDate = null;
-        }
-
-        // Automation: Update bank account balances based on payments
-        const mainAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Conta Principal");
-
-        if (mainAccount) {
-            const amountChange = item.paid ? item.amount : -item.amount;
-            
-            if (type === 'incomes') {
-                mainAccount.balance += amountChange;
-            } else if (['expenses', 'shoppingItems', 'avulsosItems'].includes(type)) {
-                mainAccount.balance -= amountChange;
-                
-                // Special case for travel investment: move money from main to savings
-                const isInvestmentExpense = item.description?.toUpperCase().includes('INVESTIMENTO PARA VIAGEM');
-                if (isInvestmentExpense) {
-                    const savingsAccount = (currentMonthData.bankAccounts || []).find(a => a.name === "Poupança Viagem");
-                    if (savingsAccount) {
-                        savingsAccount.balance += amountChange;
-                    }
-                }
-            }
-        }
-
-        saveData(); 
-    }
-}
-
-
-function deleteItem(id, type) {
-    if (!currentMonthData[type]) return;
-    currentMonthData[type] = currentMonthData[type].filter(i => i.id !== id);
-    saveData();
-}
-
-function handleAddItem(event) {
-    event.preventDefault();
-    const form = event.target;
-    const description = form.description.value;
-    const amount = parseCurrency(form.amount.value);
-    const dueDate = form.dueDate.value;
-
-    if (!description || isNaN(amount) || amount <= 0) return;
-    
-    const newItem = { id: `${currentModalType}_${Date.now()}`, description, amount, paid: false, dueDate, paidDate: null };
-    
-    if (currentModalType === 'income') {
-        if (!currentMonthData.incomes) currentMonthData.incomes = [];
-        currentMonthData.incomes.unshift(newItem);
-    } else if (currentModalType === 'expense') {
-        newItem.type = form.type.value;
-        newItem.category = form.category.value;
-        newItem.current = parseInt(form.currentInstallment.value) || 1;
-        newItem.total = parseInt(form.totalInstallments.value) || 1;
-        newItem.cyclic = form.cyclic.checked;
-        if (!currentMonthData.expenses) currentMonthData.expenses = [];
-        currentMonthData.expenses.push(newItem);
-    } else if (currentModalType === 'shopping') {
-        newItem.category = form.category.value;
-        if (!currentMonthData.shoppingItems) currentMonthData.shoppingItems = [];
-        currentMonthData.shoppingItems.unshift(newItem);
-    } else if (currentModalType === 'avulso') {
-        newItem.category = form.category.value;
-        if (!currentMonthData.avulsosItems) currentMonthData.avulsosItems = [];
-        currentMonthData.avulsosItems.unshift(newItem);
-    }
-    
-    saveData(); 
-    closeAddModal();
-}
-
-function handleEditItem(event) {
-    event.preventDefault();
-    const id = elements.editItemId.value;
-    const type = elements.editItemType.value;
-    const item = (currentMonthData[type] || []).find(i => i.id === id);
-
-    if (item) {
-        item.description = elements.editDescription.value;
-        item.amount = parseCurrency(elements.editAmount.value);
-        
-        if (item.dueDate !== undefined) item.dueDate = elements.editDueDate.value;
-        if (item.paidDate !== undefined) item.paidDate = elements.editPaidDate.value || item.paidDate;
-        if (item.category !== undefined) item.category = elements.editCategory.value;
-
-        if (item.type === 'fixed' || item.type === 'variable') {
-            item.current = parseInt(elements.editCurrentInstallment.value);
-            item.total = parseInt(elements.editTotalInstallments.value);
-        }
-        saveData();
-        closeEditModal();
-    }
-}
-
-
-// =================================================================================
-// MODAL LOGIC
-// =================================================================================
-function openModal(modalElement) {
-    modalElement.classList.add('active');
-}
-function closeModal(modalElement) {
-    modalElement.classList.remove('active');
-}
-
-function openAddModal(type) {
-    currentModalType = type;
-    elements.addForm.reset();
-    
-    const titles = {
-        income: 'Nova Entrada',
-        expense: 'Nova Despesa',
-        shopping: 'Nova Compra com Mumbuca',
-        avulso: 'Nova Despesa Avulsa'
-    };
-    elements.addModalTitle.innerHTML = `${ICONS.add} ${titles[type]}`;
-    
-    const isExpense = type === 'expense';
-    const isShopping = type === 'shopping';
-    const isAvulso = type === 'avulso';
-
-    elements.typeGroup.style.display = isExpense ? 'block' : 'none';
-    elements.categoryGroup.style.display = isExpense || isShopping || isAvulso ? 'block' : 'none';
-    elements.dueDateGroup.style.display = type !== 'income' ? 'block' : 'none';
-    elements.installmentsGroup.style.display = isExpense ? 'flex' : 'none';
-    document.getElementById('cyclicGroup').style.display = isExpense ? 'flex' : 'none';
-
-    openModal(elements.addModal);
-}
-
-function closeAddModal() {
-    closeModal(elements.addModal);
-}
-
-function openEditModal(id, type) {
-    const item = (currentMonthData[type] || []).find(i => i.id === id);
-    if (!item) return;
-
-    elements.editForm.reset();
-    elements.editItemId.value = id;
-    elements.editItemType.value = type;
-    elements.editDescription.value = item.description;
-    elements.editAmount.value = formatCurrency(item.amount);
-    elements.editModalTitle.innerHTML = `${ICONS.edit} Editar Item`;
-    
-    const hasDueDate = type !== 'incomes';
-    elements.editDueDateGroup.style.display = hasDueDate ? 'flex' : 'none';
-    if(hasDueDate) elements.editDueDate.value = item.dueDate || '';
-
-    const hasCategory = type === 'expenses' || type === 'shoppingItems' || type === 'avulsosItems';
-    elements.editCategoryGroup.style.display = hasCategory ? 'block' : 'none';
-    if (hasCategory) elements.editCategory.value = item.category;
-
-    const canBePaid = type === 'expenses' || type === 'shoppingItems' || type === 'avulsosItems';
-    elements.editPaidDateGroup.style.display = canBePaid && item.paid ? 'block' : 'none';
-    if (canBePaid && item.paid) {
-        elements.editPaidDate.value = item.paidDate || new Date().toISOString().split('T')[0];
-    }
-
-    const isExpense = type === 'expenses';
-    elements.editInstallmentsGroup.style.display = isExpense ? 'flex' : 'none';
-    elements.editInstallmentsInfo.style.display = isExpense ? 'block' : 'none';
-    if(isExpense) {
-        elements.editCurrentInstallment.value = item.current;
-        elements.editTotalInstallments.value = item.total;
-    } else {
-        elements.editInstallmentsGroup.style.display = 'none';
-        elements.editInstallmentsInfo.style.display = 'none';
-    }
-
-    openModal(elements.editModal);
-}
-
-function closeEditModal() {
-    closeModal(elements.editModal);
-}
-
-
-// =================================================================================
-// GOALS FEATURE
-// =================================================================================
 function renderGoalsPage() {
-    renderSavingsGoals();
     renderSpendingGoals();
+    renderSavingsGoals();
 }
 
 function renderSpendingGoals() {
-    const userGoals = currentMonthData.goals || [];
-    elements.goalsList.innerHTML = '';
+    const listElement = elements.goalsList;
+    if (!listElement) return;
+    listElement.innerHTML = '';
+    const goals = currentMonthData.goals || [];
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
 
-    const allIncomes = currentMonthData.incomes || [];
-    const allExpenses = currentMonthData.expenses || [];
-    const totalSalaryIncome = allIncomes
-        .filter(item => item.description.toUpperCase().includes('SALARIO'))
-        .reduce((sum, item) => sum + item.amount, 0);
-    const plannedExpensesFromSalary = allExpenses.filter(item => item.category !== 'abastecimento_mumbuca');
-    const totalPlannedExpensesFromSalary = plannedExpensesFromSalary.reduce((sum, item) => sum + item.amount, 0);
-    const avulsosBudget = totalSalaryIncome - totalPlannedExpensesFromSalary;
-    const avulsosAutoGoal = { id: 'goal_auto_avulsos', category: 'avulsos', amount: avulsosBudget, isAuto: true };
-
-    const allGoals = [avulsosAutoGoal, ...userGoals];
-
-    if (allGoals.length === 0) {
-        elements.goalsList.innerHTML = `<div class="empty-state">${ICONS.goal}<div>Você ainda não definiu nenhuma meta para este mês. Que tal começar agora?</div></div>`;
+    if (goals.length === 0) {
+        listElement.innerHTML = `<div class="empty-state-small">${ICONS.goal}<div>Defina metas de gastos por categoria para acompanhar seu orçamento.</div><button class="btn btn-secondary" id="addFirstGoalBtn">${ICONS.add} Adicionar Meta</button></div>`;
+        document.getElementById('addFirstGoalBtn').onclick = () => openGoalModal();
         return;
     }
 
-    allGoals.forEach(goal => {
-        let spent = 0;
+    goals.forEach(goal => {
+        const categoryInfo = SPENDING_CATEGORIES[goal.category];
+        if (!categoryInfo) return;
+
+        const spent = allExpenses
+            .filter(e => e.category === goal.category)
+            .reduce((sum, e) => sum + e.amount, 0);
         
-        if (goal.category === 'shopping' || goal.category === 'abastecimento_mumbuca') {
-             // Mumbuca goals track ALL items (paid or not) from any list with the matching category.
-            const allSpendingItems = [
-                ...(currentMonthData.expenses || []),
-                ...(currentMonthData.shoppingItems || []),
-                ...(currentMonthData.avulsosItems || [])
-            ];
-            spent = allSpendingItems
-                .filter(item => item.category === goal.category)
-                .reduce((sum, item) => sum + item.amount, 0);
-        } else if (goal.category === 'avulsos') {
-            // The 'Avulsos' goal tracks the sum of ALL items in the avulsosItems list.
-            spent = (currentMonthData.avulsosItems || [])
-                .reduce((sum, item) => sum + item.amount, 0);
-        } else {
-            // All other goals track only PAID items.
-            const allPaidItems = [
-                ...(currentMonthData.expenses || []),
-                ...(currentMonthData.shoppingItems || []),
-                ...(currentMonthData.avulsosItems || [])
-            ].filter(item => item.paid);
-            
-            spent = allPaidItems
-                .filter(item => item.category === goal.category)
-                .reduce((sum, item) => sum + item.amount, 0);
+        const progress = goal.amount > 0 ? (spent / goal.amount) * 100 : (spent > 0 ? 100 : 0);
+        const remaining = goal.amount - spent;
+        
+        let progressClass = 'safe';
+        if (progress > 80 && progress <= 100) progressClass = 'warning';
+        else if (progress > 100) progressClass = 'danger';
+
+        let remainingText = `${formatCurrency(remaining)} restantes`;
+        let remainingClass = 'safe';
+        if (remaining < 0) {
+            remainingText = `${formatCurrency(Math.abs(remaining))} acima do limite`;
+            remainingClass = 'over';
         }
 
-
-        const percentage = goal.amount > 0 ? (spent / goal.amount) * 100 : 0;
-        const remaining = goal.amount - spent;
-        let progressBarClass = 'safe';
-        if (percentage > 100) progressBarClass = 'danger';
-        else if (percentage > 75) progressBarClass = 'warning';
+        const autoInfo = (goal.category === 'shopping' || goal.category === 'investimento' || goal.category === 'abastecimento_mumbuca') ? `<div class="goal-card-auto-info">${ICONS.info} Automática</div>` : '';
 
         const card = document.createElement('div');
         card.className = 'goal-card';
-        
-        let actionsHTML = `
-            <button class="action-btn edit-goal-btn" title="Editar Meta">${ICONS.edit}</button>
-            <button class="action-btn delete-goal-btn" title="Excluir Meta">${ICONS.delete}</button>
-        `;
-        if (goal.isAuto) {
-            actionsHTML = `<div class="goal-card-auto-info" title="Esta meta é calculada automaticamente (Receitas - Dívidas).">${ICONS.info}<span>Automático</span></div>`;
-        }
-
         card.innerHTML = `
             <div class="goal-card-header">
-                <div class="goal-card-title">
-                    ${SPENDING_CATEGORIES[goal.category]?.icon || ''}
-                    <span>${SPENDING_CATEGORIES[goal.category]?.name || goal.category}</span>
-                </div>
+                <div class="goal-card-title">${categoryInfo.icon} ${categoryInfo.name}</div>
                 <div class="goal-card-actions">
-                     ${actionsHTML}
+                    ${autoInfo}
+                    <button class="action-btn edit-goal-btn" title="Editar Meta">${ICONS.edit}</button>
+                    <button class="action-btn delete-goal-btn" title="Excluir Meta">${ICONS.delete}</button>
                 </div>
             </div>
             <div class="goal-card-body">
                 <div class="goal-amounts">
                     <span class="goal-spent-amount">${formatCurrency(spent)}</span>
-                    <span class="goal-total-amount">de ${formatCurrency(goal.amount)}</span>
+                    <span class="goal-total-amount">/ ${formatCurrency(goal.amount)}</span>
                 </div>
                 <div class="goal-progress-bar">
-                    <div class="goal-progress-bar-inner ${progressBarClass}" style="width: ${Math.min(percentage, 100)}%;"></div>
+                    <div class="goal-progress-bar-inner ${progressClass}" style="width: ${Math.min(progress, 100)}%;"></div>
                 </div>
-                <div class="goal-remaining ${remaining < 0 ? 'over' : 'safe'}">
-                    ${remaining >= 0 ? `${formatCurrency(remaining)} restantes` : `${formatCurrency(Math.abs(remaining))} acima`}
-                </div>
+                <div class="goal-remaining ${remainingClass}">${remainingText}</div>
             </div>
         `;
-        
-        if (!goal.isAuto) {
-            card.querySelector('.edit-goal-btn').onclick = () => openGoalModal(goal.id);
-            card.querySelector('.delete-goal-btn').onclick = () => deleteGoal(goal.id);
-        }
-        elements.goalsList.appendChild(card);
+        card.querySelector('.edit-goal-btn').onclick = (e) => { e.stopPropagation(); openGoalModal(goal.id); };
+        card.querySelector('.delete-goal-btn').onclick = (e) => { e.stopPropagation(); deleteGoal(goal.id); };
+        listElement.appendChild(card);
     });
 }
 
-
-function openGoalModal(id = null) {
-    elements.goalForm.reset();
-    const existingGoal = id ? (currentMonthData.goals || []).find(g => g.id === id) : null;
-
-    if (existingGoal) {
-        elements.goalModalTitle.innerHTML = `${ICONS.edit} Editar Meta`;
-        elements.goalId.value = existingGoal.id;
-        elements.goalCategory.value = existingGoal.category;
-        elements.goalAmount.value = formatCurrency(existingGoal.amount);
-        elements.goalCategory.disabled = true;
-    } else {
-        elements.goalModalTitle.innerHTML = `${ICONS.add} Nova Meta`;
-        elements.goalId.value = '';
-        elements.goalCategory.disabled = false;
-    }
-    openModal(elements.goalModal);
-}
-
-function closeGoalModal() {
-    closeModal(elements.goalModal);
-}
-
-function handleSaveGoal(event) {
-    event.preventDefault();
-    const id = elements.goalId.value;
-    const category = elements.goalCategory.value;
-    const amount = parseCurrency(elements.goalAmount.value);
-
-    if (!category || isNaN(amount) || amount <= 0) return;
-    
-    if (category === 'avulsos') {
-        alert('A meta para a categoria "Avulsos" é calculada automaticamente e não pode ser definida manually.');
-        return;
-    }
-
-    if (id) { 
-        const goal = (currentMonthData.goals || []).find(g => g.id === id);
-        if (goal) goal.amount = amount;
-    } else { 
-        if (!currentMonthData.goals) currentMonthData.goals = [];
-        if (currentMonthData.goals.some(g => g.category === category)) {
-            alert('Já existe uma meta para esta categoria.');
-            return;
-        }
-        const newGoal = { id: `goal_${Date.now()}`, category, amount };
-        currentMonthData.goals.push(newGoal);
-    }
-    saveData();
-    closeGoalModal();
-}
-
-function deleteGoal(id) {
-    if (confirm('Tem certeza que deseja excluir esta meta?')) {
-        currentMonthData.goals = (currentMonthData.goals || []).filter(g => g.id !== id);
-        saveData();
-    }
-}
-
-// =================================================================================
-// SAVINGS GOALS FEATURE
-// =================================================================================
 function renderSavingsGoals() {
-    const savingsGoals = currentMonthData.savingsGoals || [];
-    elements.savingsGoalsList.innerHTML = '';
-
-    if (savingsGoals.length === 0) {
-        elements.savingsGoalsList.innerHTML = `<div class="empty-state">${ICONS.savings}<div>Crie metas de poupança para seus grandes objetivos, como uma viagem ou um fundo de emergência.</div></div>`;
+    const listElement = elements.savingsGoalsList;
+    if (!listElement) return;
+    listElement.innerHTML = '';
+    const goals = currentMonthData.savingsGoals || [];
+    
+    if (goals.length === 0) {
+        listElement.innerHTML = `<div class="empty-state-small">${ICONS.savings}<div>Crie metas de poupança para seus grandes objetivos.</div><button class="btn btn-secondary" id="addFirstSavingsGoalBtn">${ICONS.add} Criar Meta de Poupança</button></div>`;
+        document.getElementById('addFirstSavingsGoalBtn').onclick = () => openSavingsGoalModal();
         return;
     }
 
-    savingsGoals.forEach(goal => {
-        const percentage = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+    goals.forEach(goal => {
+        const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
         const remaining = goal.targetAmount - goal.currentAmount;
-        let progressBarClass = 'safe';
-        if (percentage > 75) progressBarClass = 'success';
-        else if (percentage > 40) progressBarClass = 'warning';
 
         const card = document.createElement('div');
-        card.className = 'goal-card';
-
+        card.className = 'goal-card'; // Reusing goal card styles
         card.innerHTML = `
             <div class="goal-card-header">
-                <div class="goal-card-title">
-                    ${ICONS.savings}
-                    <span>${goal.description}</span>
-                </div>
+                <div class="goal-card-title">${ICONS.savings} ${goal.description}</div>
                 <div class="goal-card-actions">
-                    <button class="action-btn edit-savings-goal-btn" title="Editar Meta">${ICONS.edit}</button>
-                    <button class="action-btn delete-savings-goal-btn" title="Excluir Meta">${ICONS.delete}</button>
+                    <button class="action-btn edit-s-goal-btn" title="Editar Meta">${ICONS.edit}</button>
                 </div>
             </div>
             <div class="goal-card-body">
                 <div class="goal-amounts">
                     <span class="goal-spent-amount">${formatCurrency(goal.currentAmount)}</span>
-                    <span class="goal-total-amount">de ${formatCurrency(goal.targetAmount)}</span>
+                    <span class="goal-total-amount">/ ${formatCurrency(goal.targetAmount)}</span>
                 </div>
                 <div class="goal-progress-bar">
-                    <div class="goal-progress-bar-inner ${progressBarClass}" style="width: ${Math.min(percentage, 100)}%;"></div>
+                    <div class="goal-progress-bar-inner safe" style="width: ${Math.min(progress, 100)}%;"></div>
                 </div>
-                <div class="goal-remaining safe">
-                    ${remaining > 0 ? `${formatCurrency(remaining)} restantes` : `Meta alcançada!`}
-                </div>
+                <div class="goal-remaining safe">${formatCurrency(remaining)} para completar</div>
             </div>
         `;
-        
-        card.querySelector('.edit-savings-goal-btn').onclick = () => openSavingsGoalModal(goal.id);
-        card.querySelector('.delete-savings-goal-btn').onclick = () => deleteSavingsGoal(goal.id);
-        elements.savingsGoalsList.appendChild(card);
+        card.querySelector('.edit-s-goal-btn').onclick = (e) => { e.stopPropagation(); openSavingsGoalModal(goal.id); };
+        listElement.appendChild(card);
     });
 }
 
-function openSavingsGoalModal(id = null) {
-    elements.savingsGoalForm.reset();
-    const existingGoal = id ? (currentMonthData.savingsGoals || []).find(g => g.id === id) : null;
-
-    if (existingGoal) {
-        elements.savingsGoalModalTitle.innerHTML = `${ICONS.edit} Editar Meta de Poupança`;
-        elements.savingsGoalId.value = existingGoal.id;
-        elements.savingsGoalDescription.value = existingGoal.description;
-        elements.savingsGoalCurrent.value = formatCurrency(existingGoal.currentAmount);
-        elements.savingsGoalTarget.value = formatCurrency(existingGoal.targetAmount);
-    } else {
-        elements.savingsGoalModalTitle.innerHTML = `${ICONS.add} Nova Meta de Poupança`;
-        elements.savingsGoalId.value = '';
-    }
-    openModal(elements.savingsGoalModal);
-}
-
-function closeSavingsGoalModal() {
-    closeModal(elements.savingsGoalModal);
-}
-
-function handleSaveSavingsGoal(event) {
-    event.preventDefault();
-    const id = elements.savingsGoalId.value;
-    const description = elements.savingsGoalDescription.value.trim();
-    const currentAmount = parseCurrency(elements.savingsGoalCurrent.value);
-    const targetAmount = parseCurrency(elements.savingsGoalTarget.value);
-
-    if (!description || isNaN(currentAmount) || isNaN(targetAmount) || targetAmount <= 0) {
-        alert("Por favor, preencha todos os campos com valores válidos.");
-        return;
-    }
-    
-    if (!currentMonthData.savingsGoals) currentMonthData.savingsGoals = [];
-
-    if (id) { // Editing
-        const goal = currentMonthData.savingsGoals.find(g => g.id === id);
-        if (goal) {
-            goal.description = description;
-            goal.currentAmount = currentAmount;
-            goal.targetAmount = targetAmount;
-        }
-    } else { // Adding
-        const newGoal = { id: `sg_${Date.now()}`, description, currentAmount, targetAmount };
-        currentMonthData.savingsGoals.push(newGoal);
-    }
-
-    saveData();
-    closeSavingsGoalModal();
-}
-
-function deleteSavingsGoal(id) {
-    if (confirm('Tem certeza que deseja excluir esta meta de poupança?')) {
-        currentMonthData.savingsGoals = (currentMonthData.savingsGoals || []).filter(g => g.id !== id);
-        saveData();
-    }
-}
-
-
-// =================================================================================
-// BANK ACCOUNTS FEATURE
-// =================================================================================
 function renderBankAccounts() {
+    const listElement = elements.bankAccountsList;
+    if (!listElement) return;
+    listElement.innerHTML = '';
     const accounts = currentMonthData.bankAccounts || [];
-    elements.bankAccountsList.innerHTML = '';
-    let totalBalance = 0;
-    
-    if (accounts.length === 0) {
-        elements.bankAccountsList.innerHTML = `<div class="empty-state-small">${ICONS.info}<div>Nenhuma conta bancária adicionada.</div></div>`;
-    }
 
     accounts.forEach(account => {
-        totalBalance += account.balance;
-        const isReadOnly = account.name === "Conta Principal" || account.name === "Poupança Viagem";
-
+        const isReadOnly = account.name === "Poupança Viagem";
         const item = document.createElement('div');
         item.className = `account-item ${isReadOnly ? 'read-only' : ''}`;
-        
-        let actionsHTML = `
-            <button class="action-btn edit-account-btn" title="Editar Conta">${ICONS.edit}</button>
-            <button class="action-btn delete-account-btn" title="Excluir Conta">${ICONS.delete}</button>
-        `;
+
+        let actionsHtml = `<button class="action-btn edit-account-btn" title="Editar">${ICONS.edit}</button>`;
         if (isReadOnly) {
-            actionsHTML = `<div class="account-actions"><div class="goal-card-auto-info" title="Esta conta é gerenciada automaticamente pelo app.">${ICONS.info}<span>Automática</span></div></div>`;
+            actionsHtml = `<div class="account-actions"><div class="goal-card-auto-info">${ICONS.info} Automática</div></div>`;
         }
 
         item.innerHTML = `
-            <div class="account-details">
-                <div class="account-name">${account.name}</div>
-                <div class="account-balance">${formatCurrency(account.balance)}</div>
+            <span class="account-name">${account.name}</span>
+            <div class="d-flex align-items-center">
+                <span class="account-balance">${formatCurrency(account.balance)}</span>
+                ${actionsHtml}
             </div>
-            ${actionsHTML}
         `;
         
         if (!isReadOnly) {
             item.onclick = () => openAccountModal(account.id);
-            item.querySelector('.edit-account-btn').onclick = (e) => { e.stopPropagation(); openAccountModal(account.id); };
-            item.querySelector('.delete-account-btn').onclick = (e) => { e.stopPropagation(); deleteAccount(account.id); };
+            item.querySelector('.edit-account-btn').onclick = (e) => {
+                e.stopPropagation();
+                openAccountModal(account.id);
+            };
         }
 
-        elements.bankAccountsList.appendChild(item);
+        listElement.appendChild(item);
     });
 
-    document.getElementById('accounts-total-amount').textContent = formatCurrency(totalBalance);
+    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    document.getElementById('accountsTotalValue').textContent = formatCurrency(totalBalance);
 }
 
-function openAccountModal(id = null) {
-    elements.accountForm.reset();
-    const existingAccount = id ? (currentMonthData.bankAccounts || []).find(a => a.id === id) : null;
+function renderOverviewChart() {
+    const container = elements.overviewChart;
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const totalSpent = allExpenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
 
-    if (existingAccount) {
-        elements.accountModalTitle.innerHTML = `${ICONS.edit} Editar Conta`;
-        elements.accountId.value = existingAccount.id;
-        elements.accountName.value = existingAccount.name;
-        elements.accountBalance.value = formatCurrency(existingAccount.balance);
-    } else {
-        elements.accountModalTitle.innerHTML = `${ICONS.add} Nova Conta`;
-        elements.accountId.value = '';
-    }
-    openModal(elements.accountModal);
-}
-
-function closeAccountModal() {
-    closeModal(elements.accountModal);
-}
-
-function handleSaveAccount(event) {
-    event.preventDefault();
-    const id = elements.accountId.value;
-    const name = elements.accountName.value.trim();
-    const balance = parseCurrency(elements.accountBalance.value);
-
-    if (!name || isNaN(balance)) {
-        alert("Por favor, preencha todos os campos com valores válidos.");
+    if (totalSpent === 0) {
+        container.innerHTML = `<div class="empty-state-small">${ICONS.info} Sem dados de despesas pagas para exibir o gráfico.</div>`;
         return;
     }
-    if (name === "Conta Principal" || name === "Poupança Viagem") {
-        alert("Este nome de conta é reservado para o sistema.");
-        return;
+
+    const spendingByCategory = allExpenses
+        .filter(e => e.paid)
+        .reduce((acc, expense) => {
+            const category = expense.category || 'outros';
+            acc[category] = (acc[category] || 0) + expense.amount;
+            return acc;
+        }, {});
+
+    const sortedCategories = Object.entries(spendingByCategory)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);
+
+    const otherAmount = Object.entries(spendingByCategory)
+        .sort(([, a], [, b]) => b - a)
+        .slice(5)
+        .reduce((sum, [, amount]) => sum + amount, 0);
+
+    if (otherAmount > 0) {
+        sortedCategories.push(['outros', otherAmount]);
     }
     
-    if (!currentMonthData.bankAccounts) currentMonthData.bankAccounts = [];
+    let chartHtml = '<div class="pie-chart-legend">';
+    sortedCategories.forEach(([categoryKey, amount]) => {
+        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || SPENDING_CATEGORIES.outros;
+        const percentage = (amount / totalSpent * 100).toFixed(1);
+        chartHtml += `
+            <div class="legend-item">
+                <div class="legend-label">
+                   ${categoryInfo.icon} <span>${categoryInfo.name}</span>
+                </div>
+                <div class="legend-value">
+                    ${formatCurrency(amount)} <span class="legend-percentage">(${percentage}%)</span>
+                </div>
+            </div>
+        `;
+    });
+    chartHtml += '</div>';
+    container.innerHTML = chartHtml;
+}
 
-    if (id) { 
-        const account = currentMonthData.bankAccounts.find(a => a.id === id);
-        if (account) {
-            account.name = name;
-            account.balance = balance;
+function renderMonthlyAnalysis() {
+    const section = elements.monthlyAnalysisSection;
+    if (section) {
+         section.style.display = 'block';
+    }
+}
+
+function openModal(modal) {
+    modal.classList.add('active');
+    elements.appContainer.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    const activeModals = document.querySelectorAll('.modal.active');
+    activeModals.forEach(modal => {
+        modal.classList.remove('active');
+    });
+    elements.appContainer.style.overflow = '';
+}
+
+function openAddModal(type) {
+    currentModalType = type;
+    elements.addForm.reset();
+    elements.addModalTitle.textContent = `Adicionar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`;
+    
+    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+    elements.typeGroup.style.display = type === 'expenses' ? 'block' : 'none';
+    elements.categoryGroup.style.display = isExpense ? 'block' : 'none';
+    elements.installmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
+    elements.dueDateGroup.style.display = type === 'expenses' ? 'block' : 'none';
+
+    openModal(elements.addModal);
+}
+
+function handleAddFormSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newItem = {
+        id: `${currentModalType.slice(0, -1)}_${Date.now()}`,
+        description: formData.get('description'),
+        amount: parseCurrency(formData.get('amount')),
+        paid: false
+    };
+
+    if (currentModalType === 'expenses') {
+        newItem.type = formData.get('type');
+        newItem.category = formData.get('category');
+        newItem.dueDate = formData.get('dueDate');
+        newItem.cyclic = formData.has('cyclic');
+        const totalInstallments = parseInt(formData.get('totalInstallments'), 10) || 1;
+        if (totalInstallments > 1) {
+            newItem.current = parseInt(formData.get('currentInstallment'), 10) || 1;
+            newItem.total = totalInstallments;
+        } else {
+            newItem.current = 1;
+            newItem.total = 1;
         }
-    } else { 
-        const newAccount = { id: `acc_${Date.now()}`, name, balance };
-        currentMonthData.bankAccounts.push(newAccount);
+    } else if (['shoppingItems', 'avulsosItems'].includes(currentModalType)) {
+        newItem.category = formData.get('category');
+        newItem.paid = true; // Assume these are paid immediately
+        newItem.paidDate = new Date().toISOString().split('T')[0];
+    }
+    
+    if (currentMonthData[currentModalType]) {
+        currentMonthData[currentModalType].push(newItem);
+    } else {
+        currentMonthData[currentModalType] = [newItem];
     }
 
     saveData();
-    closeAccountModal();
+    closeModal();
 }
 
-function deleteAccount(id) {
-    if (confirm('Tem certeza que deseja excluir esta conta?')) {
-        currentMonthData.bankAccounts = (currentMonthData.bankAccounts || []).filter(a => a.id !== id);
+function openEditModal(itemId, itemType) {
+    const item = currentMonthData[itemType]?.find(i => i.id === itemId);
+    if (!item) return;
+
+    elements.editModalTitle.textContent = `Editar ${itemType === 'incomes' ? 'Entrada' : 'Despesa'}`;
+    elements.editForm.reset();
+    
+    elements.editItemId.value = itemId;
+    elements.editItemType.value = itemType;
+    elements.editDescription.value = item.description;
+    elements.editAmount.value = item.amount.toFixed(2).replace('.', ',');
+
+    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType);
+    elements.editCategoryGroup.style.display = isExpense ? 'block' : 'none';
+    elements.editDueDateGroup.style.display = itemType === 'expenses' ? 'block' : 'none';
+    elements.editPaidDateGroup.style.display = item.paid ? 'block' : 'none';
+    elements.editInstallmentsGroup.style.display = itemType === 'expenses' ? 'flex' : 'none';
+    elements.editInstallmentsInfo.style.display = item.total > 1 ? 'block' : 'none';
+
+    if (isExpense) {
+        elements.editCategory.value = item.category || '';
+    }
+    if (itemType === 'expenses') {
+        elements.editDueDate.value = item.dueDate || '';
+        if(item.total > 1) {
+            elements.editCurrentInstallment.value = item.current;
+            elements.editTotalInstallments.value = item.total;
+        } else {
+            elements.editCurrentInstallment.value = '';
+            elements.editTotalInstallments.value = '';
+        }
+    }
+    if (item.paid) {
+        elements.editPaidDate.value = item.paidDate || '';
+    }
+    
+    openModal(elements.editModal);
+}
+
+
+function handleEditFormSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const itemId = formData.get('itemId');
+    const itemType = formData.get('itemType');
+    const itemIndex = currentMonthData[itemType]?.findIndex(i => i.id === itemId);
+    
+    if (itemIndex === -1) return;
+
+    const updatedItem = {
+        ...currentMonthData[itemType][itemIndex],
+        description: formData.get('description'),
+        amount: parseCurrency(formData.get('amount')),
+    };
+
+    if (['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType)) {
+        updatedItem.category = formData.get('category');
+    }
+    if (itemType === 'expenses') {
+        updatedItem.dueDate = formData.get('dueDate');
+        const total = parseInt(formData.get('totalInstallments'), 10) || 1;
+        updatedItem.total = total;
+        updatedItem.current = total > 1 ? (parseInt(formData.get('currentInstallment'), 10) || 1) : 1;
+    }
+    if (updatedItem.paid) {
+        updatedItem.paidDate = formData.get('paidDate') || updatedItem.paidDate;
+    }
+    
+    currentMonthData[itemType][itemIndex] = updatedItem;
+    saveData();
+    closeModal();
+}
+
+function deleteItem(itemId, itemType) {
+    if (confirm('Tem certeza que deseja excluir este item?')) {
+        currentMonthData[itemType] = currentMonthData[itemType].filter(i => i.id !== itemId);
         saveData();
     }
 }
 
 
-// =================================================================================
-// AI ANALYSIS FEATURE
-// =================================================================================
-function getAiInstance() {
-    if (!ai) {
+function togglePaid(itemId, itemType) {
+    const item = currentMonthData[itemType]?.find(i => i.id === itemId);
+    if (item) {
+        item.paid = !item.paid;
+        item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
+
+        const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
+        if (mainAccount) {
+            const amount = item.amount;
+            if (itemType === 'incomes') {
+                 mainAccount.balance += item.paid ? amount : -amount;
+            } else {
+                 mainAccount.balance -= item.paid ? amount : -amount;
+            }
+        }
+        
+        saveData();
+    }
+}
+
+function openGoalModal(goalId = null) {
+    elements.goalForm.reset();
+    elements.goalId.value = '';
+    
+    if (goalId) {
+        const goal = currentMonthData.goals.find(g => g.id === goalId);
+        if (goal) {
+            elements.goalModalTitle.textContent = 'Editar Meta de Gastos';
+            elements.goalId.value = goal.id;
+            elements.goalCategory.value = goal.category;
+            elements.goalAmount.value = goal.amount.toFixed(2).replace('.', ',');
+        }
+    } else {
+        elements.goalModalTitle.textContent = 'Nova Meta de Gastos';
+    }
+    
+    openModal(elements.goalModal);
+}
+
+function handleGoalFormSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const goalId = formData.get('goalId');
+    const goalData = {
+        category: formData.get('goalCategory'),
+        amount: parseCurrency(formData.get('goalAmount')),
+    };
+
+    if (goalId) {
+        const index = currentMonthData.goals.findIndex(g => g.id === goalId);
+        if (index > -1) {
+            currentMonthData.goals[index] = { ...currentMonthData.goals[index], ...goalData };
+        }
+    } else {
+        goalData.id = `goal_${Date.now()}`;
+        currentMonthData.goals.push(goalData);
+    }
+
+    saveData();
+    closeModal();
+}
+
+function deleteGoal(goalId) {
+    if (confirm('Tem certeza que deseja excluir esta meta?')) {
+        currentMonthData.goals = currentMonthData.goals.filter(g => g.id !== goalId);
+        saveData();
+    }
+}
+
+function openSavingsGoalModal(goalId = null) {
+    elements.savingsGoalForm.reset();
+    elements.savingsGoalId.value = '';
+    
+    if (goalId) {
+        const goal = currentMonthData.savingsGoals.find(g => g.id === goalId);
+        if (goal) {
+            elements.savingsGoalModalTitle.textContent = 'Editar Meta de Poupança';
+            elements.savingsGoalId.value = goal.id;
+            elements.savingsGoalDescription.value = goal.description;
+            elements.savingsGoalCurrent.value = goal.currentAmount.toFixed(2).replace('.', ',');
+            elements.savingsGoalTarget.value = goal.targetAmount.toFixed(2).replace('.', ',');
+        }
+    } else {
+        elements.savingsGoalModalTitle.textContent = 'Nova Meta de Poupança';
+    }
+    
+    openModal(elements.savingsGoalModal);
+}
+
+function handleSavingsGoalSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const goalId = formData.get('savingsGoalId');
+    const goalData = {
+        description: formData.get('savingsGoalDescription'),
+        currentAmount: parseCurrency(formData.get('savingsGoalCurrent')),
+        targetAmount: parseCurrency(formData.get('savingsGoalTarget')),
+    };
+
+    if (goalId) {
+        const index = currentMonthData.savingsGoals.findIndex(g => g.id === goalId);
+        if (index > -1) {
+            currentMonthData.savingsGoals[index] = { ...currentMonthData.savingsGoals[index], ...goalData };
+        }
+    } else {
+        goalData.id = `sg_${Date.now()}`;
+        currentMonthData.savingsGoals.push(goalData);
+    }
+
+    saveData();
+    closeModal();
+}
+
+function openAccountModal(accountId = null) {
+    elements.accountForm.reset();
+    elements.accountId.value = '';
+
+    if (accountId) {
+        const account = currentMonthData.bankAccounts.find(a => a.id === accountId);
+        if(account) {
+            elements.accountModalTitle.textContent = 'Editar Conta';
+            elements.accountId.value = account.id;
+            elements.accountName.value = account.name;
+            elements.accountBalance.value = account.balance.toFixed(2).replace('.', ',');
+        }
+    } else {
+        elements.accountModalTitle.textContent = 'Nova Conta Bancária';
+    }
+
+    openModal(elements.accountModal);
+}
+
+function handleAccountSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const accountId = formData.get('accountId');
+    const accountData = {
+        name: formData.get('accountName'),
+        balance: parseCurrency(formData.get('accountBalance')),
+    };
+
+    if (accountId) {
+        const index = currentMonthData.bankAccounts.findIndex(a => a.id === accountId);
+        if (index > -1) {
+            currentMonthData.bankAccounts[index] = { ...currentMonthData.bankAccounts[index], ...accountData };
+        }
+    } else {
+        accountData.id = `acc_${Date.now()}`;
+        currentMonthData.bankAccounts.push(accountData);
+    }
+    
+    saveData();
+    closeModal();
+}
+
+function initAI() {
+    if (process.env.API_KEY) {
         try {
             ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        } catch (e) {
-            console.error("Could not initialize GoogleGenAI. Is API_KEY set in process.env?", e);
-            appendAiMessage("Erro: A chave da API Gemini não foi configurada corretamente. Por favor, verifique as configurações.");
-            return null;
+        } catch (error) {
+            console.error("Error initializing GoogleGenAI:", error);
+            alert("Não foi possível inicializar a IA da Gemini. Verifique se sua API Key é válida.");
         }
-    }
-    return ai;
-}
-
-
-function generateDataSummary() {
-    const totalIncome = currentMonthData.incomes.reduce((s, i) => s + i.amount, 0);
-    const totalExpenses = currentMonthData.expenses.reduce((s, e) => s + e.amount, 0);
-    const totalShopping = currentMonthData.shoppingItems.reduce((s, i) => s + i.amount, 0);
-    const totalAvulsos = currentMonthData.avulsosItems.reduce((s, i) => s + i.amount, 0);
-    const expensesByCategory = [...currentMonthData.expenses, ...currentMonthData.shoppingItems, ...currentMonthData.avulsosItems].reduce((acc, e) => {
-        const categoryName = SPENDING_CATEGORIES[e.category]?.name || 'Outros';
-        acc[categoryName] = (acc[categoryName] || 0) + e.amount;
-        return acc;
-    }, {});
-
-    const sortedCategories = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a);
-
-    let summary = `Resumo Financeiro de ${getMonthName(currentMonth)}/${currentYear}:\n`;
-    summary += `- Renda Total: ${formatCurrency(totalIncome)}\n`;
-    summary += `- Total de Contas (Fixas/Variáveis): ${formatCurrency(totalExpenses)}\n`;
-    summary += `- Total de Compras Mumbuca: ${formatCurrency(totalShopping)}\n`;
-    summary += `- Total de Despesas Avulsas: ${formatCurrency(totalAvulsos)}\n`;
-    summary += `- Maiores gastos por categoria:\n`;
-    sortedCategories.slice(0, 5).forEach(([cat, amount]) => {
-        summary += `  - ${cat}: ${formatCurrency(amount)}\n`;
-    });
-    
-    return summary;
-}
-
-function appendUserMessage(message) {
-    elements.aiAnalysis.innerHTML += `
-        <div class="chat-message user-message">
-            <div class="message-bubble">${message}</div>
-        </div>`;
-    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-}
-
-function appendAiMessage(message, isStreaming = false) {
-    const existingBubble = document.getElementById('ai-streaming-bubble');
-
-    if (isStreaming && existingBubble) {
-        existingBubble.innerHTML += message;
-    } else if (isStreaming) {
-        elements.aiAnalysis.innerHTML += `
-            <div class="chat-message ai-message">
-                <div class="message-bubble" id="ai-streaming-bubble">${message}</div>
-            </div>`;
     } else {
-        if (existingBubble) {
-            existingBubble.removeAttribute('id'); // Finalize the bubble
-        }
-        elements.aiAnalysis.innerHTML += `
-            <div class="chat-message ai-message">
-                <div class="message-bubble">${message}</div>
-            </div>`;
-    }
-    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-}
-
-
-async function getAiResponse(prompt) {
-    const genAI = getAiInstance();
-    if (!genAI) return;
-
-    if (!chat) {
-        const dataSummary = generateDataSummary();
-        const systemInstruction = `Você é um consultor financeiro amigável e prestativo para um casal. Analise os dados financeiros fornecidos e responda às perguntas de forma clara, concisa e com dicas práticas. Use markdown simples para formatação (negrito com **). O resumo financeiro do mês atual é:\n${dataSummary}`;
-        
-        chat = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: systemInstruction,
-            },
-        });
-    }
-
-    appendUserMessage(prompt);
-    
-    // Create a placeholder for the AI response
-    appendAiMessage('<div class="spinner"></div>', true);
-
-    try {
-        const responseStream = await chat.sendMessageStream({ message: prompt });
-        let fullResponse = "";
-        let firstChunk = true;
-        
-        for await (const chunk of responseStream) {
-            if (firstChunk) {
-                // Clear the spinner on the first chunk
-                document.getElementById('ai-streaming-bubble').innerHTML = '';
-                firstChunk = false;
-            }
-            const chunkText = chunk.text;
-            fullResponse += chunkText;
-            document.getElementById('ai-streaming-bubble').innerHTML = simpleMarkdownToHtml(fullResponse);
-            elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-        }
-
-        const finalBubble = document.getElementById('ai-streaming-bubble');
-        if (finalBubble) {
-            finalBubble.removeAttribute('id');
-        }
-
-    } catch (error) {
-        console.error("Gemini API error:", error);
-        appendAiMessage("Desculpe, não consegui processar sua solicitação. Tente novamente.");
-        const finalBubble = document.getElementById('ai-streaming-bubble');
-        if (finalBubble) {
-            finalBubble.removeAttribute('id');
-        }
+        console.warn("API_KEY for Gemini not found. AI features will be disabled.");
     }
 }
 
-function openAiModal() {
-    chat = null; // Reset chat session
-    elements.aiAnalysis.innerHTML = ''; 
-    appendAiMessage('Olá! Sou sua assistente financeira. Como posso ajudar a analisar suas finanças deste mês?');
-    openModal(elements.aiModal);
-}
-
-function closeAiModal() {
-    closeModal(elements.aiModal);
-}
-
-// =================================================================================
-// MONTHLY ANALYSIS (HOME SCREEN)
-// =================================================================================
-function renderMonthlyAnalysis() {
-    if (!elements.monthlyAnalysisSection) return;
-
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const totalSpent = allExpenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
-
-    if (totalSpent === 0) {
-        elements.monthlyAnalysisSection.style.display = 'none';
+async function openAiModal() {
+    if (!ai) {
+        alert("A IA da Gemini não está configurada. Verifique sua API Key.");
         return;
     }
+
+    elements.aiAnalysis.innerHTML = '';
+    const initialPrompt = "Faça uma análise financeira detalhada para este mês e me dê dicas para economizar. Responda em português brasileiro.";
+    addMessageToChat('user', initialPrompt);
+    openModal(elements.aiModal);
     
-    elements.monthlyAnalysisSection.style.display = 'block';
-
-    const spendingByCategory = allExpenses.filter(e => e.paid).reduce((acc, expense) => {
-        const category = expense.category || 'outros';
-        acc[category] = (acc[category] || 0) + expense.amount;
-        return acc;
-    }, {});
-    
-    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
-
-    let topSpendingHTML = '<div class="top-spending-list">';
-    sortedCategories.slice(0, 3).forEach(([categoryKey, amount]) => {
-        const percentage = (amount / totalSpent) * 100;
-        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: categoryKey, icon: ICONS.variable };
-        topSpendingHTML += `
-            <div class="top-spending-item">
-                <div class="goal-card-title">${categoryInfo.icon}</div>
-                <div class="item-info">
-                    <span class="item-name">${categoryInfo.name}</span>
-                    <span class="item-percentage">${percentage.toFixed(1)}% do total gasto</span>
-                </div>
-                <div class="item-amount">${formatCurrency(amount)}</div>
-            </div>`;
-    });
-    topSpendingHTML += '</div>';
-
-    elements.monthlyAnalysisSection.innerHTML = `
-        <div class="section-header">
-            <h2 class="section-title">Análise do Mês</h2>
-        </div>
-        <div class="analysis-content">
-            <div>
-                <div class="analysis-block-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l-10 5 10 5 10-5z"></path><path d="M2 17l10 5 10-5"></path></svg>
-                    Top 3 Categorias de Gastos
-                </div>
-                ${topSpendingHTML}
-            </div>
-            <button id="openAiModalBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-                ${ICONS.aiAnalysis}
-                Perguntar à IA para mais detalhes
-            </button>
-        </div>`;
-        
-    document.getElementById('openAiModalBtn').addEventListener('click', openAiModal);
+    await generateAiResponse(initialPrompt, true);
 }
 
-// =================================================================================
-// PWA INSTALL
-// =================================================================================
-function setupPwaInstall() {
+
+function addMessageToChat(role, text, isLoading = false) {
+    const messageElement = document.createElement('div');
+    messageElement.className = `chat-message ${role}-message`;
+    
+    let content = simpleMarkdownToHtml(text);
+    if (isLoading) {
+        content = `<div class="loading-dots"><span></span><span></span><span></span></div>`;
+        messageElement.id = 'loading-bubble';
+    }
+    
+    messageElement.innerHTML = `<div class="message-bubble">${content}</div>`;
+    elements.aiAnalysis.appendChild(messageElement);
+    elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
+}
+
+async function generateAiResponse(prompt, isInitial = false) {
+    const loadingBubble = document.getElementById('loading-bubble');
+    if (!loadingBubble && !isInitial) {
+        addMessageToChat('ai', '', true);
+    }
+
+    try {
+        if (!chat) {
+            chat = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                systemInstruction: `Você é um assistente financeiro amigável e especialista em finanças pessoais para um casal brasileiro. Analise os dados financeiros fornecidos em formato JSON e ofereça insights, dicas de economia e projeções. Use sempre o formato de moeda R$ (Real Brasileiro). Seja conciso e direto. Sempre responda em português do Brasil.`
+            });
+        }
+        
+        const fullPrompt = `
+            Aqui estão os dados financeiros do mês atual em JSON:
+            ${JSON.stringify(currentMonthData, null, 2)}
+
+            Minha pergunta é: ${prompt}
+        `;
+
+        const response = await chat.sendMessage({ message: fullPrompt });
+        const text = response.text;
+        
+        const existingLoadingBubble = document.getElementById('loading-bubble');
+        if(existingLoadingBubble) {
+             existingLoadingBubble.remove();
+        }
+
+        addMessageToChat('ai', text);
+
+    } catch (error) {
+        console.error("Error with Gemini API:", error);
+        const existingLoadingBubble = document.getElementById('loading-bubble');
+        if(existingLoadingBubble) {
+             existingLoadingBubble.remove();
+        }
+        addMessageToChat('ai', "Desculpe, ocorreu um erro ao conectar com a IA. Tente novamente mais tarde.");
+    }
+}
+
+
+async function handleAiChatSubmit(e) {
+    e.preventDefault();
+    const prompt = elements.aiChatInput.value.trim();
+    if (!prompt) return;
+
+    addMessageToChat('user', prompt);
+    elements.aiChatInput.value = '';
+    await generateAiResponse(prompt);
+}
+
+function setupPWAInstall() {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -1782,180 +1521,126 @@ function setupPwaInstall() {
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) {
-                banner.classList.remove('visible');
-            }
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 console.log(`User response to the install prompt: ${outcome}`);
                 deferredPrompt = null;
+                const banner = document.getElementById('pwa-install-banner');
+                if (banner) {
+                    banner.classList.remove('visible');
+                }
             }
         });
     }
-
-    const dismissBtn = document.getElementById('pwa-dismiss-btn');
-    if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
+    
+    const closeBtn = document.getElementById('pwa-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
              const banner = document.getElementById('pwa-install-banner');
-            if (banner) {
-                banner.classList.remove('visible');
-            }
+             if (banner) banner.classList.remove('visible');
         });
     }
 }
-
 
 // =================================================================================
 // INITIALIZATION
 // =================================================================================
-function initApp() {
+function init() {
     // Event listeners
+    document.querySelector('.prev-month').addEventListener('click', () => changeMonth(-1));
+    document.querySelector('.next-month').addEventListener('click', () => changeMonth(1));
+    
     elements.tabButtons.forEach(btn => {
-        if (btn.dataset.view) {
-            btn.addEventListener('click', () => navigateTo(btn.dataset.view));
-        }
+        btn.addEventListener('click', () => navigateTo(btn.dataset.view));
     });
-
-    document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
-    document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
-
-    // Modal buttons
-    document.getElementById('openAddIncomeModalBtn').addEventListener('click', () => openAddModal('income'));
-    document.getElementById('openAddExpenseModalBtn').addEventListener('click', () => openAddModal('expense'));
-    document.getElementById('openAddShoppingModalBtn').addEventListener('click', () => openAddModal('shopping'));
-    document.getElementById('openAddAvulsoModalBtn').addEventListener('click', () => openAddModal('avulso'));
-    document.getElementById('openAddGoalModalBtn').addEventListener('click', () => openGoalModal());
-    document.getElementById('openAddAccountModalBtn').addEventListener('click', () => openAccountModal());
-    document.getElementById('openAddSavingsGoalModalBtn').addEventListener('click', () => openSavingsGoalModal());
     
-    elements.addForm.addEventListener('submit', handleAddItem);
-    elements.editForm.addEventListener('submit', handleEditItem);
-    elements.goalForm.addEventListener('submit', handleSaveGoal);
-    elements.accountForm.addEventListener('submit', handleSaveAccount);
-    elements.savingsGoalForm.addEventListener('submit', handleSaveSavingsGoal);
-    
-    document.getElementById('cancelAddBtn').addEventListener('click', closeAddModal);
-    elements.addModal.addEventListener('click', (e) => { if(e.target.id === 'addModal') closeAddModal(); });
-    document.getElementById('closeAddModalBtn').addEventListener('click', closeAddModal);
-    
-    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
-    elements.editModal.addEventListener('click', (e) => { if(e.target.id === 'editModal') closeEditModal(); });
-    document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
-
-    document.getElementById('cancelGoalBtn').addEventListener('click', closeGoalModal);
-    elements.goalModal.addEventListener('click', (e) => { if(e.target.id === 'goalModal') closeGoalModal(); });
-    document.getElementById('closeGoalModalBtn').addEventListener('click', closeGoalModal);
-    
-    document.getElementById('cancelAccountBtn').addEventListener('click', closeAccountModal);
-    elements.accountModal.addEventListener('click', (e) => { if(e.target.id === 'accountModal') closeAccountModal(); });
-    document.getElementById('closeAccountModalBtn').addEventListener('click', closeAccountModal);
-    
-    document.getElementById('cancelSavingsGoalBtn').addEventListener('click', closeSavingsGoalModal);
-    elements.savingsGoalModal.addEventListener('click', (e) => { if(e.target.id === 'savingsGoalModal') closeSavingsGoalModal(); });
-    document.getElementById('closeSavingsGoalModalBtn').addEventListener('click', closeSavingsGoalModal);
-
-    // AI Modal
-    document.getElementById('openAiModalBtnTab').addEventListener('click', openAiModal);
-    document.getElementById('closeAiModalBtn').addEventListener('click', closeAiModal);
-    elements.aiModal.addEventListener('click', (e) => { if(e.target.id === 'aiModal') closeAiModal(); });
-    elements.aiChatForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const prompt = elements.aiChatInput.value.trim();
-        if (prompt) {
-            getAiResponse(prompt);
-            elements.aiChatInput.value = '';
-        }
-    });
-    elements.generateSavingsSuggestionBtn.addEventListener('click', () => {
-        getAiResponse('Com base nos meus dados, me dê 3 dicas práticas e específicas de como posso economizar dinheiro este mês.');
-    });
-
-    // Segmented control for lists
-    const listButtons = {
-        incomesList: document.getElementById('openAddIncomeModalBtn'),
-        expensesList: document.getElementById('openAddExpenseModalBtn'),
-        shoppingList: document.getElementById('openAddShoppingModalBtn'),
-        avulsosList: document.getElementById('openAddAvulsoModalBtn')
-    };
-
     elements.segmentedBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             elements.segmentedBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const listId = btn.dataset.list;
-
-            Object.keys(listButtons).forEach(key => {
-                document.getElementById(key).style.display = (key === listId) ? '' : 'none';
-                listButtons[key].style.display = (key === listId) ? 'flex' : 'none';
+            document.querySelectorAll('.list-view').forEach(list => {
+                list.style.display = list.id === `list-${btn.dataset.list}` ? 'block' : 'none';
             });
         });
     });
 
-    // Currency input formatting
-    ['amount', 'editAmount', 'goalAmount', 'accountBalance', 'savingsGoalCurrent', 'savingsGoalTarget'].forEach(id => {
-        const input = document.getElementById(id);
-        if(input) {
-            input.addEventListener('input', (e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                if (value) {
-                    const numberValue = parseInt(value, 10) / 100;
-                    e.target.value = formatCurrency(numberValue);
-                } else {
-                    e.target.value = '';
-                }
-            });
-        }
+    document.getElementById('add-income-btn')?.addEventListener('click', () => openAddModal('incomes'));
+    document.getElementById('add-expense-btn')?.addEventListener('click', () => openAddModal('expenses'));
+    document.getElementById('add-shopping-btn')?.addEventListener('click', () => openAddModal('shoppingItems'));
+    document.getElementById('add-avulso-btn')?.addEventListener('click', () => openAddModal('avulsosItems'));
+    document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
+    document.getElementById('add-account-btn')?.addEventListener('click', () => openAccountModal());
+    document.getElementById('add-savings-goal-btn')?.addEventListener('click', () => openSavingsGoalModal());
+    
+    document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', closeModal);
     });
 
-    populateCategorySelects();
-    updateMonthDisplay();
-    setupPwaInstall();
-}
+    document.getElementById('open-ai-btn').addEventListener('click', openAiModal);
+    
+    elements.addForm.addEventListener('submit', handleAddFormSubmit);
+    elements.editForm.addEventListener('submit', handleEditFormSubmit);
+    elements.aiChatForm.addEventListener('submit', handleAiChatSubmit);
+    elements.goalForm.addEventListener('submit', handleGoalFormSubmit);
+    elements.accountForm.addEventListener('submit', handleAccountSubmit);
+    elements.savingsGoalForm.addEventListener('submit', handleSavingsGoalSubmit);
 
-window.addEventListener('load', async () => {
-    if ('serviceWorker' in navigator) {
-        try {
-            await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
-            console.log('Service Worker registered successfully.');
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
+    document.getElementById('deleteItemBtn')?.addEventListener('click', () => {
+        const itemId = elements.editItemId.value;
+        const itemType = elements.editItemType.value;
+        closeModal();
+        deleteItem(itemId, itemType);
+    });
+
+    elements.syncBtn.addEventListener('click', () => {
+        if (!isSyncing && isConfigured) {
+            saveDataToFirestore();
         }
-    }
+    });
+    
+    populateCategorySelects();
+    initAI();
+    setupPWAInstall();
 
+    // Firebase Authentication
     if (isConfigured) {
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, user => {
             if (user) {
                 // User is signed in.
                 currentUser = user;
-                console.log("[Auth] User is signed in:", currentUser.uid);
-                loadDataForCurrentMonth();
+                console.log(`[Auth] User signed in: ${user.uid}`);
+                syncStatus = 'syncing';
                 updateSyncButtonState();
+                loadDataForCurrentMonth();
             } else {
-                // User is signed out. Sign in anonymously.
-                try {
-                    const userCredential = await signInAnonymously(auth);
-                    currentUser = userCredential.user;
-                    console.log("[Auth] Signed in anonymously:", currentUser.uid);
-                    loadDataForCurrentMonth(); // This will create initial data if none exists
-                } catch (error) {
+                // User is signed out.
+                currentUser = null;
+                console.log("[Auth] User signed out, signing in anonymously...");
+                signInAnonymously(auth).catch(error => {
                     console.error("Anonymous sign-in failed:", error);
                     syncStatus = 'error';
-                    syncErrorDetails = `Falha na autenticação. Verifique as regras de segurança do Firebase e se o método "Anônimo" está ativado.<br><br>Detalhes: <code>${error.message}</code>`;
+                    syncErrorDetails = 'Falha na autenticação. Não é possível sincronizar.';
                     updateSyncButtonState();
-                    updateProfilePage();
-                }
+                });
             }
+            updateProfilePage();
         });
     } else {
-        // Fallback for local-only mode when Firebase isn't configured.
-        console.log("[App] Running in local-only mode.");
-        currentUser = { uid: 'local-user' }; // Mock user
-        syncStatus = 'disconnected';
-        currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+        // Firebase not configured, run in local mode.
+        console.log("[App] Running in local mode. Data will not be synced.");
+        currentUser = { uid: "localUser" }; // Create a dummy user for local operation
+        const localDataKey = `financeData_2025_11`;
+        const savedData = localStorage.getItem(localDataKey);
+        if (savedData) {
+            currentMonthData = JSON.parse(savedData);
+        } else {
+            currentMonthData = JSON.parse(JSON.stringify(initialMonthData)); // Use deep copy
+        }
         updateUI();
+        updateMonthDisplay();
     }
+}
 
-    initApp();
-});
+// Kick off the app
+document.addEventListener('DOMContentLoaded', init);
