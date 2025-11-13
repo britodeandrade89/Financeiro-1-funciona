@@ -73,64 +73,51 @@
             <div id="view-home" class="app-view active">
                 <div class="info-cards-grid">
                     <!-- Coluna 1 -->
-                    <!-- Renda Geral -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada Geral</div></div>
                         <div id="generalIncome" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="generalIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="generalIncomeSubtitle" class="summary-details"></div>
                     </div>
-
-                    <!-- Gastos Totais -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Gastos Totais do Mês</div></div>
-                        <div id="generalExpenses" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="generalExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="generalExpensesSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Salários -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada de Salários</div></div>
                         <div id="salaryIncome" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="salaryIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="salaryIncomeSubtitle" class="summary-details"></div>
                     </div>
-
-                    <!-- Dívidas e Contas -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Dívidas e Contas</div></div>
-                        <div id="debtsAndBills" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="debtsAndBillsProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="debtsAndBillsSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Renda Disponível -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Renda Disponível</div></div>
                         <div id="availableIncome" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="availableIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="availableIncomeSubtitle" class="summary-details"></div>
                     </div>
+                     <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
+                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
+                    </div>
                     
-                    <!-- Despesas Fixas e Variáveis -->
+                    <!-- Coluna 2 -->
+                    <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Gastos Totais do Mês</div></div>
+                        <div id="generalExpenses" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="generalExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="generalExpensesSubtitle" class="summary-details"></div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Dívidas e Contas</div></div>
+                        <div id="debtsAndBills" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="debtsAndBillsProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="debtsAndBillsSubtitle" class="summary-details"></div>
+                    </div>
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Despesas Fixas e Variáveis</div></div>
                         <div id="fixedVariableExpenses" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="fixedVariableExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
                         <div id="fixedVariableExpensesSubtitle" class="summary-details"></div>
                     </div>
-
-                    <!-- Mumbuca -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
-                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Estimativa de Saldo -->
-                    <div class="summary-card">
+                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Estimativa de Saldo</div></div>
                         <div id="avulsosBudget" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="avulsosBudgetProgressBar" class="summary-progress-bar-inner expense"></div></div>
@@ -261,7 +248,7 @@
                     <div class="form-group"><label for="amount" class="form-label">Valor</label><input type="text" id="amount" name="amount" class="form-input" inputmode="decimal" required></div>
                     <div id="typeGroup" class="form-group"><label for="type" class="form-label">Tipo</label><select id="type" name="type" class="form-select"><option value="fixed">Fixa</option><option value="variable">Variável</option></select></div>
                     <div id="categoryGroup" class="form-group"><label for="category" class="form-label">Categoria</label><select id="category" name="category" class="form-select"></select></div>
-                    <div id="dueDateGroup" class="form-group"><label for="dueDate" class="form-label">Data de Vencimento</label><input type="date" id="dueDate" name="dueDate" class="form-input"></div>
+                    <div id="dateGroup" class="form-group" style="display: none;"><label id="transactionDateLabel" for="transactionDate" class="form-label">Data</label><input type="date" id="transactionDate" name="transactionDate" class="form-input"></div>
                     <div id="installmentsGroup" class="form-row">
                         <div class="form-group"><label for="currentInstallment" class="form-label">Parcela Atual</label><input type="number" id="currentInstallment" name="currentInstallment" class="form-input" placeholder="Ex: 2"></div>
                         <div class="form-group"><label for="totalInstallments" class="form-label">Total de Parcelas</label><input type="number" id="totalInstallments" name="totalInstallments" class="form-input" placeholder="Ex: 12"></div>

@@ -202,7 +202,9 @@ const elements = {
     typeGroup: document.getElementById('typeGroup'),
     categoryGroup: document.getElementById('categoryGroup'),
     installmentsGroup: document.getElementById('installmentsGroup'),
-    dueDateGroup: document.getElementById('dueDateGroup'),
+    dateGroup: document.getElementById('dateGroup'),
+    transactionDateLabel: document.getElementById('transactionDateLabel'),
+    transactionDateInput: document.getElementById('transactionDate'),
     editForm: document.getElementById('editForm'),
     editModalTitle: document.getElementById('editModalTitle'),
     editItemId: document.getElementById('editItemId'),
@@ -1166,7 +1168,29 @@ function openAddModal(type) {
     elements.typeGroup.style.display = type === 'expenses' ? 'block' : 'none';
     elements.categoryGroup.style.display = isExpense ? 'block' : 'none';
     elements.installmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
-    elements.dueDateGroup.style.display = type === 'expenses' ? 'block' : 'none';
+
+    const dateGroup = elements.dateGroup;
+    const dateLabel = elements.transactionDateLabel;
+    const dateInput = elements.transactionDateInput;
+    
+    // Default to today
+    dateInput.value = new Date().toISOString().split('T')[0];
+    dateInput.required = false; // default
+    dateGroup.style.display = 'none'; // default
+
+    if (type === 'incomes') {
+        dateGroup.style.display = 'block';
+        dateLabel.textContent = 'Data do Recebimento';
+        dateInput.required = true;
+    } else if (type === 'expenses') {
+        dateGroup.style.display = 'block';
+        dateLabel.textContent = 'Data de Vencimento';
+        // dueDate is not always required
+    } else if (['shoppingItems', 'avulsosItems'].includes(type)) {
+        dateGroup.style.display = 'block';
+        dateLabel.textContent = 'Data da Compra';
+        dateInput.required = true;
+    }
 
     openModal(elements.addModal);
 }
@@ -1179,8 +1203,12 @@ function openAddCategorizedModal(type, category) {
     // Hide fields that don't apply
     elements.typeGroup.style.display = 'none';
     elements.installmentsGroup.style.display = 'none';
-    elements.dueDateGroup.style.display = 'none';
     elements.categoryGroup.style.display = 'block';
+
+    elements.dateGroup.style.display = 'block';
+    elements.transactionDateLabel.textContent = 'Data da Compra';
+    elements.transactionDateInput.value = new Date().toISOString().split('T')[0];
+    elements.transactionDateInput.required = true;
 
     // Set and then hide the category
     document.getElementById('category').value = category;
@@ -1192,17 +1220,21 @@ function openAddCategorizedModal(type, category) {
 function handleAddFormSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const transactionDate = formData.get('transactionDate');
     const newItem = {
         id: `${currentModalType.slice(0, -1)}_${Date.now()}`,
         description: formData.get('description'),
         amount: parseCurrency(formData.get('amount')),
-        paid: false
+        paid: false // default
     };
 
-    if (currentModalType === 'expenses') {
+    if (currentModalType === 'incomes') {
+        newItem.paid = true;
+        newItem.paidDate = transactionDate;
+    } else if (currentModalType === 'expenses') {
         newItem.type = formData.get('type');
         newItem.category = formData.get('category');
-        newItem.dueDate = formData.get('dueDate');
+        newItem.dueDate = transactionDate;
         newItem.cyclic = formData.has('cyclic');
         const totalInstallments = parseInt(formData.get('totalInstallments'), 10) || 1;
         if (totalInstallments > 1) {
@@ -1214,8 +1246,8 @@ function handleAddFormSubmit(e) {
         }
     } else if (['shoppingItems', 'avulsosItems'].includes(currentModalType)) {
         newItem.category = formData.get('category');
-        newItem.paid = true; // Assume these are paid immediately
-        newItem.paidDate = new Date().toISOString().split('T')[0];
+        newItem.paid = true;
+        newItem.paidDate = transactionDate;
     }
     
     if (currentMonthData[currentModalType]) {
