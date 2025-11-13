@@ -718,7 +718,9 @@ function updateSummary() {
     elements.debtsAndBillsSubtitle.textContent = `${formatCurrency(paidDebtsAndBills)} pagos / ${formatCurrency(remainingDebtsAndBills)} a pagar`;
 
     // Card 6: Avulsos Budget / Estimativa de Saldo
-    const spentOnAvulsos = (currentMonthData.avulsosItems || []).reduce((sum, item) => sum + item.amount, 0);
+    const spentOnAvulsos = (currentMonthData.avulsosItems || [])
+        .filter(item => item.paid)
+        .reduce((sum, item) => sum + item.amount, 0);
     const totalPlannedExpenses = (currentMonthData.expenses || []).reduce((sum, item) => sum + item.amount, 0);
     const avulsosBudgetAmount = totalSalaryIncome - totalPlannedExpenses;
     const avulsosBudgetProgress = avulsosBudgetAmount > 0 ? (spentOnAvulsos / avulsosBudgetAmount) * 100 : (spentOnAvulsos > 0 ? 100 : 0);
@@ -908,14 +910,23 @@ function createShoppingItem(item) {
     listItem.className = 'item';
     listItem.onclick = () => openEditModal(item.id);
     
+    const checkTitle = item.paid ? 'Marcar como pendente' : 'Marcar como pago';
+
     const categoryInfo = SPENDING_CATEGORIES[item.category];
     const categoryHtml = categoryInfo ? `<span class="item-type">${categoryInfo.icon} ${categoryInfo.name}</span>` : '';
-    const dateHtml = item.paidDate ? `<span class="item-paid-date">${ICONS.calendar} ${formatDate(item.paidDate)}</span>` : '';
+    
+    let dateHtml = '';
+    if (item.paid && item.paidDate) {
+        dateHtml = `<span class="item-paid-date">${ICONS.calendar} Pago em ${formatDate(item.paidDate)}</span>`;
+    } else if (item.date) {
+        dateHtml = `<span class="item-due-date">${ICONS.calendar} Em ${formatDate(item.date)}</span>`;
+    }
 
     listItem.innerHTML = `
+        <button class="check-btn ${item.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
         <div class="item-info-wrapper" style="gap: 0.25rem;">
             <div class="item-primary-info">
-                <div class="item-description">${item.description}</div>
+                <div class="item-description ${item.paid ? 'paid' : ''}">${item.description}</div>
                 <div class="item-actions">
                     <span class="item-amount expense-amount">${formatCurrency(item.amount)}</span>
                     <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
@@ -931,6 +942,7 @@ function createShoppingItem(item) {
         </div>
     `;
 
+    listItem.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(item.id); };
     listItem.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(item.id); };
     listItem.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(item.id); };
     return listItem;
@@ -1246,8 +1258,18 @@ function handleAddFormSubmit(e) {
         }
     } else if (['shoppingItems', 'avulsosItems'].includes(currentModalType)) {
         newItem.category = formData.get('category');
-        newItem.paid = true;
-        newItem.paidDate = transactionDate;
+        const isMumbuca = ['shopping', 'abastecimento_mumbuca'].includes(newItem.category);
+        
+        if(isMumbuca) {
+            // Mumbuca purchases are considered paid immediately.
+            newItem.paid = true;
+            newItem.paidDate = transactionDate;
+        } else {
+            // Regular avulsos items are added as 'planned' and can be checked off later.
+            newItem.paid = false;
+            newItem.paidDate = null;
+            newItem.date = transactionDate; // This is the date of the expense, not payment.
+        }
     }
     
     if (currentMonthData[currentModalType]) {
@@ -1283,26 +1305,37 @@ function openEditModal(itemId, itemType = null) {
     elements.editDescription.value = item.description;
     elements.editAmount.value = item.amount.toFixed(2).replace('.', ',');
 
-    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
-    elements.editCategoryGroup.style.display = isExpense ? 'block' : 'none';
-    elements.editDueDateGroup.style.display = type === 'expenses' ? 'block' : 'none';
-    elements.editPaidDateGroup.style.display = item.paid ? 'block' : 'none';
-    elements.editInstallmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
-    elements.editInstallmentsInfo.style.display = item.total > 1 ? 'block' : 'none';
+    // Reset visibility for all groups
+    elements.editCategoryGroup.style.display = 'none';
+    elements.editDueDateGroup.style.display = 'none';
+    elements.editInstallmentsGroup.style.display = 'none';
+    elements.editInstallmentsInfo.style.display = 'none';
 
-    if (isExpense) {
-        elements.editCategory.value = item.category || '';
-    }
+    // Configure based on item type
     if (type === 'expenses') {
+        elements.editCategoryGroup.style.display = 'block';
+        elements.editCategory.value = item.category || '';
+        elements.editDueDateGroup.style.display = 'block';
+        document.querySelector('#editDueDateGroup label').textContent = 'Vencimento';
         elements.editDueDate.value = item.dueDate || '';
+        elements.editInstallmentsGroup.style.display = 'flex';
         if(item.total > 1) {
+            elements.editInstallmentsInfo.style.display = 'block';
             elements.editCurrentInstallment.value = item.current;
             elements.editTotalInstallments.value = item.total;
         } else {
             elements.editCurrentInstallment.value = '';
             elements.editTotalInstallments.value = '';
         }
+    } else if (['shoppingItems', 'avulsosItems'].includes(type)) {
+        elements.editCategoryGroup.style.display = 'block';
+        elements.editCategory.value = item.category || '';
+        elements.editDueDateGroup.style.display = 'block';
+        document.querySelector('#editDueDateGroup label').textContent = 'Data da Compra';
+        elements.editDueDate.value = item.date || ''; // Use the generic 'date' property
     }
+
+    elements.editPaidDateGroup.style.display = item.paid ? 'block' : 'none';
     if (item.paid) {
         elements.editPaidDate.value = item.paidDate || '';
     }
@@ -1326,15 +1359,17 @@ function handleEditFormSubmit(e) {
         amount: parseCurrency(formData.get('amount')),
     };
 
-    if (['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType)) {
-        updatedItem.category = formData.get('category');
-    }
     if (itemType === 'expenses') {
+        updatedItem.category = formData.get('category');
         updatedItem.dueDate = formData.get('dueDate');
         const total = parseInt(formData.get('totalInstallments'), 10) || 1;
         updatedItem.total = total;
         updatedItem.current = total > 1 ? (parseInt(formData.get('currentInstallment'), 10) || 1) : 1;
+    } else if (['shoppingItems', 'avulsosItems'].includes(itemType)) {
+        updatedItem.category = formData.get('category');
+        updatedItem.date = formData.get('dueDate'); // The input name is 'dueDate'
     }
+
     if (updatedItem.paid) {
         updatedItem.paidDate = formData.get('paidDate') || updatedItem.paidDate;
     }
