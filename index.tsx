@@ -181,7 +181,8 @@ const elements = {
     // Lists and other elements
     incomesList: document.getElementById('incomesList'),
     expensesList: document.getElementById('expensesList'),
-    shoppingList: document.getElementById('shoppingList'),
+    comprasMumbucaList: document.getElementById('comprasMumbucaList'),
+    abastecimentoMumbucaList: document.getElementById('abastecimentoMumbucaList'),
     avulsosList: document.getElementById('avulsosList'),
     goalsList: document.getElementById('goalsList'),
     bankAccountsList: document.getElementById('bankAccountsList'),
@@ -609,7 +610,14 @@ function updateUI() {
     updateSummary();
     renderList('incomes', elements.incomesList, createIncomeItem, "Nenhuma entrada registrada", ICONS.income);
     renderList('expenses', elements.expensesList, createExpenseItem, "Nenhuma despesa registrada", ICONS.expense, true);
-    renderList('shoppingItems', elements.shoppingList, createShoppingItem, "Nenhuma compra registrada", ICONS.shopping);
+    
+    const allSpendings = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const comprasMumbucaItems = allSpendings.filter(item => item.category === 'shopping');
+    const abastecimentoMumbucaItems = allSpendings.filter(item => item.category === 'abastecimento_mumbuca');
+    
+    renderFilteredList(elements.comprasMumbucaList, comprasMumbucaItems, createShoppingItem, "Nenhuma compra registrada", ICONS.shopping);
+    renderFilteredList(elements.abastecimentoMumbucaList, abastecimentoMumbucaItems, createShoppingItem, "Nenhum abastecimento registrado", SPENDING_CATEGORIES.abastecimento_mumbuca.icon);
+
     renderList('avulsosItems', elements.avulsosList, createShoppingItem, "Nenhuma despesa avulsa registrada", ICONS.variable);
     renderGoalsPage();
     renderBankAccounts();
@@ -623,10 +631,14 @@ function updateSummary() {
     const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
     const fixedVariableExpenses = currentMonthData.expenses || [];
 
-    // Find travel investment expense using its category for reliability
-    const travelInvestmentExpense = (currentMonthData.expenses || []).find(e => e.category === 'investimento');
-    const travelInvestmentAmount = travelInvestmentExpense ? travelInvestmentExpense.amount : 0;
-    const paidTravelInvestmentAmount = (travelInvestmentExpense && travelInvestmentExpense.paid) ? travelInvestmentExpense.amount : 0;
+    // Robustly calculate total investment amount by summing all expenses in that category
+    const totalTravelInvestmentAmount = (currentMonthData.expenses || [])
+        .filter(e => e.category === 'investimento')
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+    const paidTravelInvestmentAmount = (currentMonthData.expenses || [])
+        .filter(e => e.category === 'investimento' && e.paid)
+        .reduce((sum, expense) => sum + expense.amount, 0);
 
     // Card 2: General Income (All sources)
     const totalGeneralIncomeAmount = allIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -650,14 +662,19 @@ function updateSummary() {
     elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos / ${formatCurrency(remainingSalaryIncome)} a receber`;
 
     // New Card: Available Income (after investment)
-    const totalAvailableIncome = totalGeneralIncomeAmount - travelInvestmentAmount;
-    const paidAvailableIncome = paidGeneralIncome - paidTravelInvestmentAmount;
-    const availableIncomeProgress = totalAvailableIncome > 0 ? (paidAvailableIncome / totalAvailableIncome) * 100 : 0;
-    const remainingAvailableIncome = totalAvailableIncome - paidAvailableIncome;
-
+    // User clarification: Available Income = (Salaries + Other Incomes EXCEPT Mumbuca) - (Travel Investment)
+    const nonMumbucaIncomes = allIncomes.filter(i => !i.description.toUpperCase().includes('MUMBUCA'));
+    const totalNonMumbucaIncome = nonMumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const paidNonMumbucaIncome = nonMumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    
+    const totalAvailableIncome = totalNonMumbucaIncome - totalTravelInvestmentAmount;
+    const receivedAvailableIncome = paidNonMumbucaIncome - paidTravelInvestmentAmount; 
+    const remainingAvailableToReceive = totalAvailableIncome - receivedAvailableIncome;
+    const availableIncomeProgress = totalAvailableIncome > 0 ? (receivedAvailableIncome / totalAvailableIncome) * 100 : 0;
+    
     elements.availableIncome.textContent = formatCurrency(totalAvailableIncome);
     elements.availableIncomeProgressBar.style.width = `${Math.min(availableIncomeProgress, 100)}%`;
-    elements.availableIncomeSubtitle.textContent = `${formatCurrency(paidAvailableIncome)} disponíveis / ${formatCurrency(remainingAvailableIncome)} a receber`;
+    elements.availableIncomeSubtitle.textContent = `${formatCurrency(receivedAvailableIncome)} disponíveis / ${formatCurrency(remainingAvailableToReceive)} a receber`;
 
 
     // Card 4: Mumbuca Income
@@ -689,7 +706,7 @@ function updateSummary() {
     elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
 
     // New Card: Debts & Bills (General Expenses without investment)
-    const totalDebtsAndBills = totalGeneralExpensesAmount - travelInvestmentAmount;
+    const totalDebtsAndBills = totalGeneralExpensesAmount - totalTravelInvestmentAmount;
     const paidDebtsAndBills = paidGeneralExpensesAmount - paidTravelInvestmentAmount;
     const debtsAndBillsProgress = totalDebtsAndBills > 0 ? (paidDebtsAndBills / totalDebtsAndBills) * 100 : 0;
     const remainingDebtsAndBills = totalDebtsAndBills - paidDebtsAndBills;
@@ -794,6 +811,22 @@ function renderList(type, listElement, itemCreator, emptyMessage, emptyIcon, gro
     }
 }
 
+function renderFilteredList(listElement, items, itemCreator, emptyMessage, emptyIcon) {
+    listElement.innerHTML = '';
+
+    if (items.length === 0) {
+        listElement.innerHTML = `<div class="empty-state">${emptyIcon}<div>${emptyMessage}</div></div>`;
+        return;
+    }
+    
+    items.sort((a, b) => {
+        const activityTimestampA = a.paidDate ? new Date(a.paidDate).getTime() : (parseInt(a.id.split('_').pop(), 10) || 0);
+        const activityTimestampB = b.paidDate ? new Date(b.paidDate).getTime() : (parseInt(b.id.split('_').pop(), 10) || 0);
+        return activityTimestampB - activityTimestampA;
+    }).forEach(item => listElement.appendChild(itemCreator(item)));
+}
+
+
 function createIncomeItem(income, type) {
     const item = document.createElement('div');
     item.className = 'item';
@@ -868,10 +901,10 @@ function createExpenseItem(expense, type) {
     return item;
 }
 
-function createShoppingItem(item, type) {
+function createShoppingItem(item) {
     const listItem = document.createElement('div');
     listItem.className = 'item';
-    listItem.onclick = () => openEditModal(item.id, type);
+    listItem.onclick = () => openEditModal(item.id);
     
     const categoryInfo = SPENDING_CATEGORIES[item.category];
     const categoryHtml = categoryInfo ? `<span class="item-type">${categoryInfo.icon} ${categoryInfo.name}</span>` : '';
@@ -896,8 +929,8 @@ function createShoppingItem(item, type) {
         </div>
     `;
 
-    listItem.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(item.id, type); };
-    listItem.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(item.id, type); };
+    listItem.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(item.id); };
+    listItem.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(item.id); };
     return listItem;
 }
 
@@ -1138,6 +1171,24 @@ function openAddModal(type) {
     openModal(elements.addModal);
 }
 
+function openAddCategorizedModal(type, category) {
+    currentModalType = type;
+    elements.addForm.reset();
+    elements.addModalTitle.textContent = `Adicionar ${SPENDING_CATEGORIES[category].name}`;
+
+    // Hide fields that don't apply
+    elements.typeGroup.style.display = 'none';
+    elements.installmentsGroup.style.display = 'none';
+    elements.dueDateGroup.style.display = 'none';
+    elements.categoryGroup.style.display = 'block';
+
+    // Set and then hide the category
+    document.getElementById('category').value = category;
+    elements.categoryGroup.style.display = 'none';
+
+    openModal(elements.addModal);
+}
+
 function handleAddFormSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -1177,29 +1228,40 @@ function handleAddFormSubmit(e) {
     closeModal();
 }
 
-function openEditModal(itemId, itemType) {
-    const item = currentMonthData[itemType]?.find(i => i.id === itemId);
+function findItemById(itemId) {
+    const lists = ['incomes', 'expenses', 'shoppingItems', 'avulsosItems'];
+    for (const listType of lists) {
+        const item = (currentMonthData[listType] || []).find(i => i.id === itemId);
+        if (item) {
+            return { item, type: listType };
+        }
+    }
+    return { item: null, type: null };
+}
+
+function openEditModal(itemId, itemType = null) {
+    const { item, type } = itemType ? { item: currentMonthData[itemType]?.find(i => i.id === itemId), type: itemType } : findItemById(itemId);
     if (!item) return;
 
-    elements.editModalTitle.textContent = `Editar ${itemType === 'incomes' ? 'Entrada' : 'Despesa'}`;
+    elements.editModalTitle.textContent = `Editar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`;
     elements.editForm.reset();
     
     elements.editItemId.value = itemId;
-    elements.editItemType.value = itemType;
+    elements.editItemType.value = type;
     elements.editDescription.value = item.description;
     elements.editAmount.value = item.amount.toFixed(2).replace('.', ',');
 
-    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType);
+    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
     elements.editCategoryGroup.style.display = isExpense ? 'block' : 'none';
-    elements.editDueDateGroup.style.display = itemType === 'expenses' ? 'block' : 'none';
+    elements.editDueDateGroup.style.display = type === 'expenses' ? 'block' : 'none';
     elements.editPaidDateGroup.style.display = item.paid ? 'block' : 'none';
-    elements.editInstallmentsGroup.style.display = itemType === 'expenses' ? 'flex' : 'none';
+    elements.editInstallmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
     elements.editInstallmentsInfo.style.display = item.total > 1 ? 'block' : 'none';
 
     if (isExpense) {
         elements.editCategory.value = item.category || '';
     }
-    if (itemType === 'expenses') {
+    if (type === 'expenses') {
         elements.editDueDate.value = item.dueDate || '';
         if(item.total > 1) {
             elements.editCurrentInstallment.value = item.current;
@@ -1250,16 +1312,19 @@ function handleEditFormSubmit(e) {
     closeModal();
 }
 
-function deleteItem(itemId, itemType) {
+function deleteItem(itemId, itemType = null) {
     if (confirm('Tem certeza que deseja excluir este item?')) {
-        currentMonthData[itemType] = currentMonthData[itemType].filter(i => i.id !== itemId);
-        saveData();
+        const { type } = itemType ? { type: itemType } : findItemById(itemId);
+        if (type) {
+            currentMonthData[type] = currentMonthData[type].filter(i => i.id !== itemId);
+            saveData();
+        }
     }
 }
 
 
-function togglePaid(itemId, itemType) {
-    const item = currentMonthData[itemType]?.find(i => i.id === itemId);
+function togglePaid(itemId, itemType = null) {
+    const { item, type } = itemType ? { item: currentMonthData[itemType]?.find(i => i.id === itemId), type: itemType } : findItemById(itemId);
     if (item) {
         item.paid = !item.paid;
         item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
@@ -1267,7 +1332,7 @@ function togglePaid(itemId, itemType) {
         const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
         if (mainAccount) {
             const amount = item.amount;
-            if (itemType === 'incomes') {
+            if (type === 'incomes') {
                  mainAccount.balance += item.paid ? amount : -amount;
             } else {
                  mainAccount.balance -= item.paid ? amount : -amount;
@@ -1567,7 +1632,8 @@ function init() {
 
     document.getElementById('add-income-btn')?.addEventListener('click', () => openAddModal('incomes'));
     document.getElementById('add-expense-btn')?.addEventListener('click', () => openAddModal('expenses'));
-    document.getElementById('add-shopping-btn')?.addEventListener('click', () => openAddModal('shoppingItems'));
+    document.getElementById('add-compras-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'shopping'));
+    document.getElementById('add-abastecimento-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'abastecimento_mumbuca'));
     document.getElementById('add-avulso-btn')?.addEventListener('click', () => openAddModal('avulsosItems'));
     document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
     document.getElementById('add-account-btn')?.addEventListener('click', () => openAccountModal());

@@ -72,36 +72,13 @@
             <!-- HOME VIEW -->
             <div id="view-home" class="app-view active">
                 <div class="info-cards-grid">
+                    <!-- Coluna 1 -->
                     <!-- Renda Geral -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada Geral</div></div>
                         <div id="generalIncome" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="generalIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="generalIncomeSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Renda Disponível -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Renda Disponível</div></div>
-                        <div id="availableIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="availableIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="availableIncomeSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Salários -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Entrada de Salários</div></div>
-                        <div id="salaryIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="salaryIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="salaryIncomeSubtitle" class="summary-details"></div>
-                    </div>
-
-                    <!-- Mumbuca -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
-                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
                     </div>
 
                     <!-- Gastos Totais -->
@@ -112,6 +89,14 @@
                         <div id="generalExpensesSubtitle" class="summary-details"></div>
                     </div>
 
+                    <!-- Salários -->
+                    <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Entrada de Salários</div></div>
+                        <div id="salaryIncome" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="salaryIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
+                        <div id="salaryIncomeSubtitle" class="summary-details"></div>
+                    </div>
+
                     <!-- Dívidas e Contas -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Dívidas e Contas</div></div>
@@ -120,20 +105,36 @@
                         <div id="debtsAndBillsSubtitle" class="summary-details"></div>
                     </div>
 
-                    <!-- Estimativa de Saldo -->
+                    <!-- Renda Disponível -->
                     <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Estimativa de Saldo</div></div>
-                        <div id="avulsosBudget" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="avulsosBudgetProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="avulsosBudgetSubtitle" class="summary-details"></div>
+                        <div class="summary-header"><div class="summary-title">Renda Disponível</div></div>
+                        <div id="availableIncome" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="availableIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
+                        <div id="availableIncomeSubtitle" class="summary-details"></div>
                     </div>
-
+                    
                     <!-- Despesas Fixas e Variáveis -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Despesas Fixas e Variáveis</div></div>
                         <div id="fixedVariableExpenses" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="fixedVariableExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
                         <div id="fixedVariableExpensesSubtitle" class="summary-details"></div>
+                    </div>
+
+                    <!-- Mumbuca -->
+                    <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
+                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
+                    </div>
+
+                    <!-- Estimativa de Saldo -->
+                    <div class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Estimativa de Saldo</div></div>
+                        <div id="avulsosBudget" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="avulsosBudgetProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="avulsosBudgetSubtitle" class="summary-details"></div>
                     </div>
                 </div>
 
@@ -159,24 +160,29 @@
             <!-- LANÇAMENTOS VIEW -->
             <div id="view-lancamentos" class="app-view">
                 <div class="segmented-control">
-                    <button class="segmented-btn active" data-list="expenses">Despesas</button>
-                    <button class="segmented-btn" data-list="incomes">Entradas</button>
-                    <button class="segmented-btn" data-list="shopping">Mumbuca</button>
+                    <button class="segmented-btn active" data-list="incomes">Entradas</button>
+                    <button class="segmented-btn" data-list="expenses">Despesas</button>
+                    <button class="segmented-btn" data-list="compras-mumbuca">Compras Mumbuca</button>
+                    <button class="segmented-btn" data-list="abastecimento-mumbuca">Abastecimento</button>
                     <button class="segmented-btn" data-list="avulsos">Avulsos</button>
                 </div>
 
                 <div class="lists-container">
-                    <div id="list-expenses" class="list-view">
-                        <div id="list-actions"><button class="btn" id="add-expense-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Despesa</button></div>
-                        <div class="items-list-wrapper"><div id="expensesList" class="items-list"></div></div>
-                    </div>
-                    <div id="list-incomes" class="list-view" style="display: none;">
+                    <div id="list-incomes" class="list-view">
                         <div id="list-actions"><button class="btn" id="add-income-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Entrada</button></div>
                         <div class="items-list-wrapper"><div id="incomesList" class="items-list"></div></div>
                     </div>
-                    <div id="list-shopping" class="list-view" style="display: none;">
-                        <div id="list-actions"><button class="btn" id="add-shopping-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Compra</button></div>
-                        <div class="items-list-wrapper"><div id="shoppingList" class="items-list"></div></div>
+                    <div id="list-expenses" class="list-view" style="display: none;">
+                        <div id="list-actions"><button class="btn" id="add-expense-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Despesa</button></div>
+                        <div class="items-list-wrapper"><div id="expensesList" class="items-list"></div></div>
+                    </div>
+                    <div id="list-compras-mumbuca" class="list-view" style="display: none;">
+                        <div id="list-actions"><button class="btn" id="add-compras-mumbuca-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Compra</button></div>
+                        <div class="items-list-wrapper"><div id="comprasMumbucaList" class="items-list"></div></div>
+                    </div>
+                    <div id="list-abastecimento-mumbuca" class="list-view" style="display: none;">
+                        <div id="list-actions"><button class="btn" id="add-abastecimento-mumbuca-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Novo Abastecimento</button></div>
+                        <div class="items-list-wrapper"><div id="abastecimentoMumbucaList" class="items-list"></div></div>
                     </div>
                     <div id="list-avulsos" class="list-view" style="display: none;">
                         <div id="list-actions"><button class="btn" id="add-avulso-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nova Despesa Avulsa</button></div>
