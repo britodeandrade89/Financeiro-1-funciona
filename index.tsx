@@ -470,6 +470,11 @@ async function createNewMonthData() {
         }
 
         if(shouldAdd) {
+            // User requested change: Adjust Andre's Intermedica amount from December 2025 onwards.
+            if (newExpense.description.toUpperCase().includes("INTERMÉDICA DO ANDRÉ") && (currentYear > 2025 || (currentYear === 2025 && currentMonth >= 12))) {
+                newExpense.amount = 135.60;
+            }
+
             const newDate = new Date(newExpense.dueDate + 'T00:00:00');
             newDate.setMonth(newDate.getMonth() + 1);
             newExpense.dueDate = newDate.toISOString().split('T')[0];
