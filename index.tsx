@@ -55,8 +55,8 @@ const initialMonthData = {
     incomes: [
         { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true },
         { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true },
-        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true },
-        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true },
+        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: false },
+        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: false },
         { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true },
     ],
     expenses: [
@@ -69,13 +69,13 @@ const initialMonthData = {
         { id: "exp_nov_6", description: "CONTA DA VIVO --- ANDRÉ (ATRASADAS DE AGOSTO, SETEMBRO E OUTUBRO)", amount: 86.86, type: "fixed", category: "pessoal", paid: true, cyclic: true, dueDate: '2025-10-30', paidDate: '2025-10-30', current: 10, total: 12 },
         { id: "exp_nov_7", description: "CONTA DA CLARO", amount: 74.99, type: "fixed", category: "pessoal", paid: true, cyclic: true, dueDate: '2025-10-30', paidDate: '2025-10-30', current: 11, total: 12 },
         { id: "exp_nov_8", description: "CONTA DA VIVO --- MARCELLY", amount: 66.56, type: "fixed", category: "pessoal", paid: true, cyclic: true, dueDate: '2025-11-05', paidDate: '2025-11-05', current: 10, total: 12 },
-        { id: "exp_nov_9", description: "REMÉDIOS DO ANDRÉ", amount: 0.00, type: "fixed", category: "saude", paid: false, cyclic: true, dueDate: '2025-11-05', paidDate: null, current: 10, total: 12 },
-        { id: "exp_nov_10", description: "INTERMÉDICA DO ANDRÉ (MARCIA BRITO)", amount: 123.00, type: "fixed", category: "saude", paid: false, cyclic: true, dueDate: '2025-11-15', paidDate: null, current: 10, total: 12 },
-        { id: "exp_nov_11", description: "APPAI DA MARCELLY", amount: 110.00, type: "fixed", category: "educacao", paid: false, cyclic: true, dueDate: '2025-11-15', paidDate: null, current: 10, total: 12 },
-        { id: "exp_nov_12", description: "APPAI DO ANDRÉ (MARCIA BRITO)", amount: 129.00, type: "fixed", category: "educacao", paid: false, cyclic: true, dueDate: '2025-11-20', paidDate: null, current: 10, total: 12 },
-        { id: "exp_nov_13", description: "CIDADANIA PORTUGUESA", amount: 140.00, type: "fixed", category: "outros", paid: false, cyclic: false, dueDate: '2025-11-20', paidDate: null, current: 13, total: 36 },
-        { id: "exp_nov_14", description: "EMPRÉSTIMO PARA ACABAR DE PASSAR ABRIL (MARCIA BRITO)", amount: 220.00, type: "fixed", category: "dividas", paid: false, cyclic: false, dueDate: '2025-11-25', paidDate: null, current: 6, total: 6 },
-        { id: "exp_nov_15", description: "RENEGOCIAÇÃO DO CARREFOUR (MARCIA BRITO)", amount: 250.00, type: "fixed", category: "dividas", paid: false, cyclic: false, dueDate: '2025-11-28', paidDate: null, current: 2, total: 12 },
+        { id: "exp_nov_9", description: "REMÉDIOS DO ANDRÉ", amount: 0.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-05', paidDate: '2025-11-05', current: 10, total: 12 },
+        { id: "exp_nov_10", description: "INTERMÉDICA DO ANDRÉ (MARCIA BRITO)", amount: 123.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-15', paidDate: '2025-11-15', current: 10, total: 12 },
+        { id: "exp_nov_11", description: "APPAI DA MARCELLY", amount: 110.00, type: "fixed", category: "saude", paid: false, cyclic: true, dueDate: '2025-11-15', paidDate: null, current: 10, total: 12 },
+        { id: "exp_nov_12", description: "APPAI DO ANDRÉ (MARCIA BRITO)", amount: 129.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-20', paidDate: '2025-11-20', current: 10, total: 12 },
+        { id: "exp_nov_13", description: "CIDADANIA PORTUGUESA", amount: 140.00, type: "fixed", category: "outros", paid: true, cyclic: false, dueDate: '2025-11-20', paidDate: '2025-11-20', current: 13, total: 36 },
+        { id: "exp_nov_14", description: "EMPRÉSTIMO PARA ACABAR DE PASSAR ABRIL (MARCIA BRITO)", amount: 220.00, type: "fixed", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-25', paidDate: '2025-11-25', current: 6, total: 6 },
+        { id: "exp_nov_15", description: "RENEGOCIAÇÃO DO CARREFOUR (MARCIA BRITO)", amount: 312.50, type: "fixed", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 1, total: 16 },
         // Despesas Variáveis
         { id: "exp_nov_16", description: "DALUZ (LILI)", amount: 88.50, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-03', paidDate: '2025-11-03', current: 1, total: 2 },
         { id: "exp_nov_17", description: "VESTIDO CÍTRICA (LILI)", amount: 53.57, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-03', paidDate: '2025-11-03', current: 1, total: 2 },
@@ -330,10 +330,10 @@ async function saveDataToFirestore() {
     const docRef = doc(db, 'users', currentUser.uid, 'months', monthKey);
 
     try {
-        // Pass the state object directly to setDoc. The Firebase SDK handles serialization,
-        // which avoids the "Converting circular structure to JSON" error that can occur
-        // when trying to manually stringify Firebase's proxy objects.
-        await setDoc(docRef, currentMonthData);
+        // Sanitize the data to remove any potential Firestore proxy objects before saving.
+        // This prevents circular reference errors if the local state object was mutated.
+        const cleanData = JSON.parse(JSON.stringify(currentMonthData));
+        await setDoc(docRef, cleanData);
         syncStatus = 'synced';
         updateLastSyncTime(true);
     } catch (error) {
@@ -1607,9 +1607,11 @@ async function generateAiResponse(prompt, isInitial = false) {
             });
         }
         
+        // Sanitize the data to remove any potential Firestore proxy objects before stringifying for the AI.
+        const cleanDataForAI = JSON.parse(JSON.stringify(currentMonthData));
         const fullPrompt = `
             Aqui estão os dados financeiros do mês atual em JSON:
-            ${JSON.stringify(currentMonthData, null, 2)}
+            ${JSON.stringify(cleanDataForAI, null, 2)}
 
             Minha pergunta é: ${prompt}
         `;
