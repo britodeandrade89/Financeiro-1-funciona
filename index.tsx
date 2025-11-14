@@ -201,6 +201,7 @@ const elements = {
     addForm: document.getElementById('addForm'),
     typeGroup: document.getElementById('typeGroup'),
     categoryGroup: document.getElementById('categoryGroup'),
+    sourceAccountGroup: document.getElementById('sourceAccountGroup'),
     installmentsGroup: document.getElementById('installmentsGroup'),
     dateGroup: document.getElementById('dateGroup'),
     transactionDateLabel: document.getElementById('transactionDateLabel'),
@@ -211,6 +212,8 @@ const elements = {
     editItemType: document.getElementById('editItemType'),
     editDescription: document.getElementById('editDescription'),
     editAmount: document.getElementById('editAmount'),
+    editSourceAccountGroup: document.getElementById('editSourceAccountGroup'),
+    editSourceAccount: document.getElementById('editSourceAccount'),
     editCategoryGroup: document.getElementById('editCategoryGroup'),
     editCategory: document.getElementById('editCategory'),
     editDueDate: document.getElementById('editDueDate'),
@@ -312,6 +315,26 @@ function populateCategorySelects() {
                 goalCategorySelect.appendChild(option);
             });
     }
+}
+
+function populateAccountSelects() {
+    const selects = [
+        document.getElementById('sourceAccount'),
+        document.getElementById('editSourceAccount'),
+    ];
+    const accounts = currentMonthData.bankAccounts || [];
+    
+    selects.forEach(select => {
+        if (select) {
+            select.innerHTML = ''; // Clear existing options
+            accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                select.appendChild(option);
+            });
+        }
+    });
 }
 
 
@@ -1179,9 +1202,11 @@ function closeModal() {
 function openAddModal(type) {
     currentModalType = type;
     elements.addForm.reset();
+    populateAccountSelects();
     elements.addModalTitle.textContent = `Adicionar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`;
     
     const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+    elements.sourceAccountGroup.style.display = isExpense ? 'block' : 'none';
     elements.typeGroup.style.display = type === 'expenses' ? 'block' : 'none';
     elements.categoryGroup.style.display = isExpense ? 'block' : 'none';
     elements.installmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
@@ -1215,12 +1240,14 @@ function openAddModal(type) {
 function openAddCategorizedModal(type, category) {
     currentModalType = type;
     elements.addForm.reset();
+    populateAccountSelects();
     elements.addModalTitle.textContent = `Adicionar ${SPENDING_CATEGORIES[category].name}`;
 
     // Hide fields that don't apply
     elements.typeGroup.style.display = 'none';
     elements.installmentsGroup.style.display = 'none';
     elements.categoryGroup.style.display = 'block';
+    elements.sourceAccountGroup.style.display = 'block';
 
     elements.dateGroup.style.display = 'block';
     elements.transactionDateLabel.textContent = 'Data da Compra';
@@ -1248,9 +1275,15 @@ function handleAddFormSubmit(e) {
     if (currentModalType === 'incomes') {
         newItem.paid = true;
         newItem.paidDate = transactionDate;
+        // Find the main account and add the income to it
+        const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
+        if (mainAccount) {
+            mainAccount.balance += newItem.amount;
+        }
     } else if (currentModalType === 'expenses') {
         newItem.type = formData.get('type');
         newItem.category = formData.get('category');
+        newItem.sourceAccountId = formData.get('sourceAccount');
         newItem.dueDate = transactionDate;
         newItem.cyclic = formData.has('cyclic');
         const totalInstallments = parseInt(formData.get('totalInstallments'), 10) || 1;
@@ -1263,6 +1296,7 @@ function handleAddFormSubmit(e) {
         }
     } else if (['shoppingItems', 'avulsosItems'].includes(currentModalType)) {
         newItem.category = formData.get('category');
+        newItem.sourceAccountId = formData.get('sourceAccount');
         const isMumbuca = ['shopping', 'abastecimento_mumbuca'].includes(newItem.category);
         
         if(isMumbuca) {
@@ -1281,6 +1315,14 @@ function handleAddFormSubmit(e) {
         currentMonthData[currentModalType].push(newItem);
     } else {
         currentMonthData[currentModalType] = [newItem];
+    }
+    
+    // If the new expense was created as already paid, update account balance.
+    if(newItem.paid && newItem.sourceAccountId) {
+        const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === newItem.sourceAccountId);
+        if (sourceAccount) {
+            sourceAccount.balance -= newItem.amount;
+        }
     }
 
     saveData();
@@ -1304,6 +1346,7 @@ function openEditModal(itemId, itemType = null) {
 
     elements.editModalTitle.textContent = `Editar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`;
     elements.editForm.reset();
+    populateAccountSelects();
     
     elements.editItemId.value = itemId;
     elements.editItemType.value = type;
@@ -1312,9 +1355,17 @@ function openEditModal(itemId, itemType = null) {
 
     // Reset visibility for all groups
     elements.editCategoryGroup.style.display = 'none';
+    elements.editSourceAccountGroup.style.display = 'none';
     elements.editDueDateGroup.style.display = 'none';
     elements.editInstallmentsGroup.style.display = 'none';
     elements.editInstallmentsInfo.style.display = 'none';
+
+    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+    if (isExpense) {
+         elements.editSourceAccountGroup.style.display = 'block';
+         const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id;
+         elements.editSourceAccount.value = item.sourceAccountId || mainAccountId || '';
+    }
 
     // Configure based on item type
     if (type === 'expenses') {
@@ -1354,15 +1405,22 @@ function handleEditFormSubmit(e) {
     const formData = new FormData(e.target);
     const itemId = formData.get('itemId');
     const itemType = formData.get('itemType');
-    const itemIndex = currentMonthData[itemType]?.findIndex(i => i.id === itemId);
+    const itemIndex = (currentMonthData[itemType] || []).findIndex(i => i.id === itemId);
     
     if (itemIndex === -1) return;
 
+    // NOTE: Balance adjustments for amount/source changes on already paid items are handled by toggling paid status.
+    // This simplifies logic and prevents accidental double accounting.
     const updatedItem = {
         ...currentMonthData[itemType][itemIndex],
         description: formData.get('description'),
         amount: parseCurrency(formData.get('amount')),
     };
+    
+    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType);
+    if (isExpense) {
+        updatedItem.sourceAccountId = formData.get('sourceAccount');
+    }
 
     if (itemType === 'expenses') {
         updatedItem.category = formData.get('category');
@@ -1386,8 +1444,23 @@ function handleEditFormSubmit(e) {
 
 function deleteItem(itemId, itemType = null) {
     if (confirm('Tem certeza que deseja excluir este item?')) {
-        const { type } = itemType ? { type: itemType } : findItemById(itemId);
-        if (type) {
+        const { item, type } = itemType ? { item: currentMonthData[itemType]?.find(i => i.id === itemId), type: itemType } : findItemById(itemId);
+        
+        if (item && type) {
+            // If the item was paid, revert the transaction from the source account
+            if(item.paid) {
+                const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+                if (type === 'incomes') {
+                    const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
+                    if (mainAccount) mainAccount.balance -= item.amount;
+                } else if (isExpense) {
+                    const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id;
+                    const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === (item.sourceAccountId || mainAccountId));
+                    if(sourceAccount) sourceAccount.balance += item.amount;
+                }
+            }
+            
+            // Filter out the item
             currentMonthData[type] = currentMonthData[type].filter(i => i.id !== itemId);
             saveData();
         }
@@ -1401,14 +1474,19 @@ function togglePaid(itemId, itemType = null) {
         item.paid = !item.paid;
         item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
 
-        const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
-        if (mainAccount) {
-            const amount = item.amount;
-            if (type === 'incomes') {
-                 mainAccount.balance += item.paid ? amount : -amount;
-            } else {
-                 mainAccount.balance -= item.paid ? amount : -amount;
+        const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+
+        if (type === 'incomes') {
+            const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
+            if (mainAccount) {
+                 mainAccount.balance += item.paid ? item.amount : -item.amount;
             }
+        } else if (isExpense) {
+             const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id;
+             const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === (item.sourceAccountId || mainAccountId));
+             if (sourceAccount) {
+                  sourceAccount.balance -= item.paid ? item.amount : -item.amount;
+             }
         }
         
         saveData();
@@ -1740,6 +1818,7 @@ function init() {
     });
     
     populateCategorySelects();
+    populateAccountSelects();
     initAI();
     setupPWAInstall();
 

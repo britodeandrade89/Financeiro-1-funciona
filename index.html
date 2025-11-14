@@ -246,6 +246,7 @@
                 <form id="addForm">
                     <div class="form-group"><label for="description" class="form-label">Descrição</label><input type="text" id="description" name="description" class="form-input" required></div>
                     <div class="form-group"><label for="amount" class="form-label">Valor</label><input type="text" id="amount" name="amount" class="form-input" inputmode="decimal" required></div>
+                    <div id="sourceAccountGroup" class="form-group"><label for="sourceAccount" class="form-label">Fonte do Pagamento</label><select id="sourceAccount" name="sourceAccount" class="form-select"></select></div>
                     <div id="typeGroup" class="form-group"><label for="type" class="form-label">Tipo</label><select id="type" name="type" class="form-select"><option value="fixed">Fixa</option><option value="variable">Variável</option></select></div>
                     <div id="categoryGroup" class="form-group"><label for="category" class="form-label">Categoria</label><select id="category" name="category" class="form-select"></select></div>
                     <div id="dateGroup" class="form-group" style="display: none;"><label id="transactionDateLabel" for="transactionDate" class="form-label">Data</label><input type="date" id="transactionDate" name="transactionDate" class="form-input"></div>
@@ -272,6 +273,7 @@
                     <input type="hidden" id="editItemType" name="itemType">
                     <div class="form-group"><label for="editDescription" class="form-label">Descrição</label><input type="text" id="editDescription" name="description" class="form-input" required></div>
                     <div class="form-group"><label for="editAmount" class="form-label">Valor</label><input type="text" id="editAmount" name="amount" class="form-input" inputmode="decimal" required></div>
+                    <div id="editSourceAccountGroup" class="form-group"><label for="editSourceAccount" class="form-label">Fonte do Pagamento</label><select id="editSourceAccount" name="sourceAccount" class="form-select"></select></div>
                     <div id="editCategoryGroup" class="form-group"><label for="editCategory" class="form-label">Categoria</label><select id="editCategory" name="category" class="form-select"></select></div>
                     <div id="editDueDateGroup" class="form-group"><label for="editDueDate" class="form-label">Vencimento</label><input type="date" id="editDueDate" name="dueDate" class="form-input"></div>
                     <div id="editPaidDateGroup" class="form-group"><label for="editPaidDate" class="form-label">Data de Pagamento</label><input type="date" id="editPaidDate" name="paidDate" class="form-input"></div>
