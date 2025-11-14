@@ -73,9 +73,9 @@ const initialMonthData = {
         { id: "exp_nov_10", description: "INTERMÉDICA DO ANDRÉ (MARCIA BRITO)", amount: 123.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-15', paidDate: '2025-11-15', current: 10, total: 12 },
         { id: "exp_nov_11", description: "APPAI DA MARCELLY", amount: 110.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-15', paidDate: '2025-11-15', current: 10, total: 12 },
         { id: "exp_nov_12", description: "APPAI DO ANDRÉ (MARCIA BRITO)", amount: 129.00, type: "fixed", category: "saude", paid: true, cyclic: true, dueDate: '2025-11-20', paidDate: '2025-11-20', current: 10, total: 12 },
-        { id: "exp_nov_13", description: "CIDADANIA PORTUGUESA", amount: 140.00, type: "fixed", category: "outros", paid: true, cyclic: false, dueDate: '2025-11-20', paidDate: '2025-11-20', current: 13, total: 36 },
+        { id: "exp_nov_13", description: "CIDADANIA PORTUGUESA", amount: 140.00, type: "fixed", category: "outros", paid: true, cyclic: false, dueDate: '2025-11-20', paidDate: '2025-11-20', current: 13, total: 36, sourceAccountId: 'acc_2' },
         { id: "exp_nov_14", description: "EMPRÉSTIMO PARA ACABAR DE PASSAR ABRIL (MARCIA BRITO)", amount: 220.00, type: "fixed", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-25', paidDate: '2025-11-25', current: 6, total: 6 },
-        { id: "exp_nov_15", description: "RENEGOCIAÇÃO DO CARREFOUR (MARCIA BRITO)", amount: 312.50, type: "fixed", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 1, total: 16 },
+        { id: "exp_nov_15", description: "RENEGOCIAÇÃO DO CARREFOUR (MARCIA BRITO)", amount: 312.50, type: "fixed", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 1, total: 16, sourceAccountId: 'acc_2' },
         // Despesas Variáveis
         { id: "exp_nov_16", description: "DALUZ (LILI)", amount: 88.50, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-03', paidDate: '2025-11-03', current: 1, total: 2 },
         { id: "exp_nov_17", description: "VESTIDO CÍTRICA (LILI)", amount: 53.57, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-03', paidDate: '2025-11-03', current: 1, total: 2 },
@@ -107,6 +107,9 @@ const initialMonthData = {
         { id: "avulso_nov_5", description: 'Pastel da Marcelly', amount: 32.00, paid: true, paidDate: '2025-11-08', category: 'alimentacao'},
         { id: "avulso_nov_6", description: 'Correios', amount: 69.02, paid: true, paidDate: '2025-11-05', category: 'outros'},
         { id: "avulso_nov_7", description: 'Mercado', amount: 76.80, paid: true, paidDate: '2025-11-05', category: 'alimentacao'},
+        { id: "avulso_nov_8", description: 'Mercado', amount: 36.38, paid: true, paidDate: '2025-11-13', category: 'alimentacao', sourceAccountId: 'acc_2' },
+        { id: "avulso_nov_9", description: 'Amendoim', amount: 8.99, paid: true, paidDate: '2025-11-12', category: 'alimentacao', sourceAccountId: 'acc_2' },
+        { id: "avulso_nov_10", description: 'Neosaldina', amount: 15.99, paid: true, paidDate: '2025-11-12', category: 'saude', sourceAccountId: 'acc_2' },
     ],
     goals: [
         { id: "goal_1", category: "shopping", amount: 900 },
@@ -119,8 +122,8 @@ const initialMonthData = {
         { id: "sg_1", description: "Viagem de Férias", currentAmount: 1000, targetAmount: 5000 },
     ],
     bankAccounts: [
-        { id: "acc_1", name: "Conta Principal", balance: 150.32 },
-        { id: "acc_2", name: "Poupança Viagem", balance: 1000.00 },
+        { id: "acc_1", name: "Conta Principal", balance: 602.82 },
+        { id: "acc_2", name: "Poupança Viagem", balance: 486.14 },
     ]
 };
 
