@@ -55,8 +55,8 @@ const initialMonthData = {
     incomes: [
         { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true },
         { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true },
-        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: false },
-        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: false },
+        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true, paidDate: '2025-11-15' },
+        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true, paidDate: '2025-11-15' },
         { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true },
     ],
     expenses: [
@@ -86,9 +86,9 @@ const initialMonthData = {
         { id: "exp_nov_22", description: "TEATRO (JADY)", amount: 126.09, type: "variable", category: "lazer", paid: true, cyclic: false, dueDate: '2025-11-05', paidDate: '2025-11-05', current: 2, total: 2 },
         { id: "exp_nov_23", description: "PRESENTE JULIANA (JADY)", amount: 34.65, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-05', paidDate: '2025-11-05', current: 1, total: 1 },
         { id: "exp_nov_24", description: "PRESENTE NENEM GLEYCI (JADY)", amount: 38.94, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-05', paidDate: '2025-11-05', current: 1, total: 2 },
-        { id: "exp_nov_25", description: "VESTIDO LONGO AMARELO (MÃE DA MARCELLY)", amount: 33.00, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-10', paidDate: '2025-11-10', current: 2, total: 3 },
-        { id: "exp_nov_26", description: "BLUSA BRANCA DALUZ (MÃE DA MARCELLY)", amount: 34.50, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-10', paidDate: '2025-11-10', current: 2, total: 2 },
-        { id: "exp_nov_27", description: "FATURA CARTÃO MARCELLY", amount: 193.37, type: "variable", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-15', paidDate: '2025-11-15', current: 10, total: 12 },
+        { id: "exp_nov_25", description: "VESTIDO LONGO AMARELO (MÃE DA MARCELLY)", amount: 33.00, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-10', paidDate: '2025-11-10', current: 2, total: 3, sourceAccountId: 'acc_2' },
+        { id: "exp_nov_26", description: "BLUSA BRANCA DALUZ (MÃE DA MARCELLY)", amount: 34.50, type: "variable", category: "pessoal", paid: true, cyclic: false, dueDate: '2025-11-10', paidDate: '2025-11-10', current: 2, total: 2, sourceAccountId: 'acc_2' },
+        { id: "exp_nov_27", description: "FATURA CARTÃO MARCELLY", amount: 193.37, type: "variable", category: "dividas", paid: true, cyclic: false, dueDate: '2025-11-15', paidDate: '2025-11-15', current: 10, total: 12, sourceAccountId: 'acc_2' },
         { id: "exp_nov_28", description: "CONSERTO DO CARRO COM PEÇAS DE OUTUBRO (MARCIA BRITO)", amount: 361.75, type: "variable", category: "transporte", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 1, total: 4 },
         { id: "exp_nov_29", description: "PEÇAS DO CARRO - CONSERTO DE DEZEMBRO (MARCIA BRITO)", amount: 67.70, type: "variable", category: "transporte", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 10, total: 10 },
         { id: "exp_nov_30", description: "MÃO DE OBRA DO DAVI (MARCIA BRITO)", amount: 108.33, type: "variable", category: "transporte", paid: true, cyclic: false, dueDate: '2025-11-28', paidDate: '2025-11-28', current: 3, total: 3 },
@@ -122,8 +122,8 @@ const initialMonthData = {
         { id: "sg_1", description: "Viagem de Férias", currentAmount: 1000, targetAmount: 5000 },
     ],
     bankAccounts: [
-        { id: "acc_1", name: "Conta Principal", balance: 602.82 },
-        { id: "acc_2", name: "Poupança Viagem", balance: 486.14 },
+        { id: "acc_1", name: "Conta Principal", balance: 77.00 },
+        { id: "acc_2", name: "Poupança Viagem", balance: 106.78 },
     ]
 };
 
@@ -1478,8 +1478,9 @@ function togglePaid(itemId, itemType = null) {
         item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
 
         const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
+        const isMumbucaIncome = item.description?.toUpperCase().includes('MUMBUCA');
 
-        if (type === 'incomes') {
+        if (type === 'incomes' && !isMumbucaIncome) {
             const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal");
             if (mainAccount) {
                  mainAccount.balance += item.paid ? item.amount : -item.amount;
