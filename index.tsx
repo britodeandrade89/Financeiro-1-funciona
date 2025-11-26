@@ -114,6 +114,9 @@ const initialMonthData = {
     ],
     savingsGoals: [
         { id: "sg_1", description: "Viagem de Férias", currentAmount: 1000, targetAmount: 5000 },
+        { id: "sg_2", description: "Reserva de Emergência", currentAmount: 4000, targetAmount: 5000 },
+        { id: "sg_3", description: "Carro Novo", currentAmount: 1000, targetAmount: 10000 },
+        { id: "sg_4", description: "Reforma", currentAmount: 600, targetAmount: 1000 }
     ],
     bankAccounts: [
         { id: "acc_1", name: "Conta Principal", balance: 6829.84 },
@@ -130,6 +133,7 @@ let currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosIt
 let currentModalType = '';
 let currentMonth = 11;
 let currentYear = 2025;
+let isBalanceVisible = true;
 
 // =================================================================================
 // FIREBASE SYNC STATE
@@ -365,7 +369,7 @@ async function createNewMonthData() {
 
 
 // =================================================================================
-// NAVIGATION
+// NAVIGATION & UI TOGGLES
 // =================================================================================
 function navigateTo(viewName) {
     elements.appViews.forEach(view => {
@@ -379,14 +383,27 @@ function navigateTo(viewName) {
     updateHeader(viewName);
 }
 
+function toggleBalanceVisibility() {
+    isBalanceVisible = !isBalanceVisible;
+    const btn = document.querySelector('.visibility-btn');
+    if (!btn) return;
+    
+    if (isBalanceVisible) {
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    } else {
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    }
+    updateSummary();
+}
+
 function updateHeader(viewName) {
     let headerContent = '';
     if (viewName === 'home') {
         headerContent = `
             <div class="header-home">
                 <div class="header-greeting">
-                    <h2>Olá, Marcia</h2>
-                    <p>Bem-vinda de volta!</p>
+                    <h2>Olá, Família Bispo Brito</h2>
+                    <p>Bem-vindos de volta!</p>
                 </div>
                 <div class="header-actions">
                     <button class="action-btn">
@@ -423,10 +440,11 @@ function updateSummary() {
     // Shared calculations
     const allIncomes = currentMonthData.incomes || [];
     const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    const hiddenValue = 'R$ ••••••';
 
     // Card 1: Main Summary Card
     const totalBalance = (currentMonthData.bankAccounts || []).reduce((sum, acc) => sum + acc.balance, 0);
-    elements.totalBalance.textContent = formatCurrency(totalBalance);
+    elements.totalBalance.textContent = isBalanceVisible ? formatCurrency(totalBalance) : hiddenValue;
 
     const nonMumbucaIncomes = allIncomes.filter(i => !i.description.toUpperCase().includes('MUMBUCA'));
     const totalNonMumbucaIncome = nonMumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -434,11 +452,11 @@ function updateSummary() {
         .filter(e => e.category === 'investimento')
         .reduce((sum, expense) => sum + expense.amount, 0);
     const availableIncome = totalNonMumbucaIncome - totalTravelInvestmentAmount;
-    elements.availableIncome.textContent = formatCurrency(availableIncome);
+    elements.availableIncome.textContent = isBalanceVisible ? formatCurrency(availableIncome) : hiddenValue;
 
     // Card 2: Monthly Expenses
     const paidExpensesAmount = allExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    elements.monthlyExpenses.textContent = formatCurrency(paidExpensesAmount);
+    elements.monthlyExpenses.textContent = isBalanceVisible ? formatCurrency(paidExpensesAmount) : hiddenValue;
 
     // Card 3: Mumbuca Balance
     const totalMumbucaIncome = allIncomes
@@ -450,7 +468,7 @@ function updateSummary() {
         .reduce((sum, item) => sum + item.amount, 0);
     
     const mumbucaBalance = totalMumbucaIncome - mumbucaSpending;
-    elements.mumbucaBalance.textContent = formatCurrency(mumbucaBalance);
+    elements.mumbucaBalance.textContent = isBalanceVisible ? formatCurrency(mumbucaBalance) : hiddenValue;
 }
 
 function renderTransactions() {
@@ -530,34 +548,63 @@ function renderOverviewChart() {
     const chartEl = elements.overviewChart;
     const legendEl = elements.overviewChartLegend;
     if (!chartEl || !legendEl) return;
-    
+
     chartEl.style.background = '';
     legendEl.innerHTML = '';
 
-    const salaries = (currentMonthData.incomes || []).filter(i => i.description.toUpperCase().includes('SALARIO')).reduce((sum, i) => sum + i.amount, 0);
-    const mumbuca = (currentMonthData.incomes || []).filter(i => i.description.toUpperCase().includes('MUMBUCA')).reduce((sum, i) => sum + i.amount, 0);
-    const expenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])].filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
+    const allPaidExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])].filter(e => e.paid);
 
-    const total = salaries + mumbuca + expenses;
-    if (total === 0) return;
+    if (allPaidExpenses.length === 0) {
+        legendEl.innerHTML = '<div class="empty-state-chart">Sem gastos para analisar.</div>';
+        return;
+    }
 
-    const data = [
-        { label: 'Salários', value: salaries, color: '#00C48C' },
-        { label: 'Mumbuca', value: mumbuca, color: '#4B91F7' },
-        { label: 'Gastos do Mês', value: expenses, color: '#FF4D4D' }
-    ].filter(d => d.value > 0);
+    const expensesByCategory = allPaidExpenses.reduce((acc, expense) => {
+        const categoryKey = expense.category || 'outros';
+        acc[categoryKey] = (acc[categoryKey] || 0) + expense.amount;
+        return acc;
+    }, {});
+
+    const totalExpenses = allPaidExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const categoryColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ECC71', '#E74C3C', '#3498DB', '#F1C40F'];
+    let colorIndex = 0;
+
+    const sortedCategories = Object.entries(expensesByCategory)
+        .sort(([, a], [, b]) => b - a); // Sort by amount descending
+
+    const data = sortedCategories.map(([categoryKey, amount]) => {
+        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: 'Outros' };
+        const color = categoryColors[colorIndex % categoryColors.length];
+        colorIndex++;
+        return {
+            label: categoryInfo.name,
+            value: amount,
+            color: color
+        };
+    });
 
     let gradient = 'conic-gradient(';
     let currentPercentage = 0;
 
     data.forEach(item => {
-        const percentage = (item.value / total) * 100;
+        const percentage = (item.value / totalExpenses) * 100;
+        if (percentage < 0.1) return; // Don't show tiny slices
+
         gradient += `${item.color} ${currentPercentage}% ${currentPercentage + percentage}%, `;
         currentPercentage += percentage;
 
         const legendItem = document.createElement('div');
         legendItem.className = 'legend-item';
-        legendItem.innerHTML = `<div class="legend-dot" style="background-color: ${item.color}"></div> ${item.label}`;
+        legendItem.innerHTML = `
+            <div class="legend-info">
+                <div class="legend-dot" style="background-color: ${item.color}"></div>
+                ${item.label}
+            </div>
+            <div class="legend-values">
+                <span class="value">${formatCurrency(item.value)}</span>
+                <span class="percentage">(${percentage.toFixed(0)}%)</span>
+            </div>`;
         legendEl.appendChild(legendItem);
     });
 
@@ -599,6 +646,7 @@ function init() {
     });
     
     document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
+    document.querySelector('.visibility-btn')?.addEventListener('click', toggleBalanceVisibility);
 
     
     // Firebase Authentication
