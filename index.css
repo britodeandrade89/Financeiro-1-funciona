@@ -106,6 +106,20 @@ body {
     padding-bottom: 90px; /* Space for tab bar */
 }
 
+.app-view {
+    display: none;
+}
+.app-view.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
 /* Header */
 #app-header {
     position: fixed;
@@ -115,44 +129,55 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
+    padding: 0.5rem 1rem;
     height: 70px;
     background-color: var(--background);
     z-index: 100;
+    text-align: center;
 }
 
-.header-home {
+.header-content-wrapper {
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
 }
-.header-greeting h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-.header-greeting p {
-    color: var(--text-light);
-    font-size: 0.9rem;
-}
-.header-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-.header-actions .action-btn {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-}
+
 .header-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    text-align: center;
-    width: 100%;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 2px;
 }
+
+.month-navigator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+#current-month-display {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.month-nav-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.month-nav-btn:hover {
+    color: var(--primary);
+}
+
 
 /* Tab Bar */
 #tab-bar {
@@ -328,11 +353,22 @@ body {
     margin-left: 0.25rem;
     font-weight: 400;
 }
-.empty-state-chart {
+.empty-state-chart, .empty-state {
     text-align: center;
     color: var(--text-light);
     padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
 }
+.empty-state svg {
+    width: 48px;
+    height: 48px;
+    stroke-width: 1.5;
+    opacity: 0.5;
+}
+
 
 /* Extrato View */
 #transactionsList {

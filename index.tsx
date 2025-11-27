@@ -42,6 +42,8 @@ const SPENDING_CATEGORIES = {
     outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>` },
 };
 
+const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
 // =================================================================================
 // INITIAL DATA
 // =================================================================================
@@ -131,7 +133,7 @@ let ai = null; // Lazy initialized to prevent crash on load if process.env is no
 let chat = null;
 let currentMonthData = { incomes: [], expenses: [], shoppingItems: [], avulsosItems: [], goals: [], bankAccounts: [], savingsGoals: [] };
 let currentModalType = '';
-let currentMonth = 11;
+let currentMonth = 11; // November
 let currentYear = 2025;
 let isBalanceVisible = true;
 
@@ -349,10 +351,17 @@ function loadDataForCurrentMonth() {
     firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             currentMonthData = JSON.parse(JSON.stringify(docSnap.data()));
-            updateUI();
         } else {
-            createNewMonthData();
+            // If it's the very first time loading this user, use initial data.
+            // Otherwise, create a blank slate for the new month.
+            const isFirstLoadEver = !Object.keys(currentMonthData).some(key => Array.isArray(currentMonthData[key]) && currentMonthData[key].length > 0);
+            if (isFirstLoadEver && currentYear === 2025 && currentMonth === 11) {
+                 currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+            } else {
+                 createNewMonthData();
+            }
         }
+        updateUI();
     }, (error) => {
         console.error("Error listening to Firestore:", error);
         syncStatus = 'error';
@@ -363,7 +372,24 @@ function loadDataForCurrentMonth() {
 
 async function createNewMonthData() {
     if (!currentUser || !isConfigured) return;
-    currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+    
+    // Create a blank slate but preserve goals, accounts, and savings goals
+    const preservedData = {
+        goals: currentMonthData.goals || [],
+        bankAccounts: currentMonthData.bankAccounts || [],
+        savingsGoals: currentMonthData.savingsGoals || []
+    };
+
+    currentMonthData = {
+        incomes: [],
+        expenses: [],
+        shoppingItems: [],
+        avulsosItems: [],
+        goals: preservedData.goals,
+        bankAccounts: preservedData.bankAccounts,
+        savingsGoals: preservedData.savingsGoals,
+    };
+
     saveData();
 }
 
@@ -383,6 +409,24 @@ function navigateTo(viewName) {
     updateHeader(viewName);
 }
 
+function goToPrevMonth() {
+    currentMonth--;
+    if (currentMonth < 1) {
+        currentMonth = 12;
+        currentYear--;
+    }
+    loadDataForCurrentMonth();
+}
+
+function goToNextMonth() {
+    currentMonth++;
+    if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear++;
+    }
+    loadDataForCurrentMonth();
+}
+
 function toggleBalanceVisibility() {
     isBalanceVisible = !isBalanceVisible;
     const btn = document.querySelector('.visibility-btn');
@@ -397,30 +441,30 @@ function toggleBalanceVisibility() {
 }
 
 function updateHeader(viewName) {
-    let headerContent = '';
-    if (viewName === 'home') {
-        headerContent = `
-            <div class="header-home">
-                <div class="header-greeting">
-                    <h2>Olá, Família Bispo Brito</h2>
-                    <p>Bem-vindos de volta!</p>
-                </div>
-                <div class="header-actions">
-                    <button class="action-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                    </button>
-                </div>
-            </div>
-        `;
-    } else {
-        let title = '';
-        switch(viewName) {
-            case 'extrato': title = 'Extrato'; break;
-            case 'metas': title = 'Metas'; break;
-            case 'perfil': title = 'Perfil'; break;
-        }
-        headerContent = `<h2 class="header-title">${title}</h2>`;
+    let title = '';
+    switch(viewName) {
+        case 'home': title = 'Resumo Mensal'; break;
+        case 'extrato': title = 'Extrato'; break;
+        case 'metas': title = 'Metas'; break;
+        case 'perfil': title = 'Perfil'; break;
     }
+
+    const monthName = MONTH_NAMES[currentMonth - 1];
+
+    const headerContent = `
+        <div class="header-content-wrapper">
+            <h2 class="header-title">${title}</h2>
+            <div class="month-navigator">
+                <button id="prev-month-btn" class="month-nav-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <span id="current-month-display">${monthName} ${currentYear}</span>
+                <button id="next-month-btn" class="month-nav-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+    `;
     elements.appHeader.innerHTML = headerContent;
 }
 
@@ -430,6 +474,11 @@ function updateHeader(viewName) {
 // =================================================================================
 function updateUI() {
     if(!currentUser) return; // Don't render if not logged in
+    
+    // The active view name might be lost on reload, so we get it from the active button
+    const activeViewName = document.querySelector('.tab-btn.active')?.dataset.view || 'home';
+    updateHeader(activeViewName); // Update header with correct month name
+    
     updateSummary();
     renderTransactions();
     renderGoalsPage();
@@ -485,7 +534,7 @@ function renderTransactions() {
     allTransactions.sort((a,b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
 
     if (allTransactions.length === 0) {
-        listElement.innerHTML = `<div class="empty-state">${ICONS.expense}<div>Nenhuma transação registrada</div></div>`;
+        listElement.innerHTML = `<div class="empty-state">${ICONS.expense}<div>Nenhuma transação registrada neste mês</div></div>`;
         return;
     }
     
@@ -645,6 +694,16 @@ function init() {
         btn.addEventListener('click', () => navigateTo(btn.dataset.view));
     });
     
+    // Use event delegation for month navigator buttons as header is dynamic
+    elements.appHeader.addEventListener('click', (e) => {
+        if (e.target.closest('#prev-month-btn')) {
+            goToPrevMonth();
+        }
+        if (e.target.closest('#next-month-btn')) {
+            goToNextMonth();
+        }
+    });
+
     document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
     document.querySelector('.visibility-btn')?.addEventListener('click', toggleBalanceVisibility);
 
