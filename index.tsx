@@ -8,38 +8,27 @@ import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 // =================================================================================
 // ICONS & CATEGORIES
 // =================================================================================
-const ICONS = {
-    add: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-    edit: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`,
-    delete: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
-    check: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
-    income: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5l-5-5-5 5M17 19l-5 5-5 5"></path></svg>`,
-    expense: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5l-5 5-5-5M17 19l-5-5-5-5"></path></svg>`,
-    fixed: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
-    variable: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`,
-    shopping: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
-    calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
-    info: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
-    goal: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
-    savings: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>`,
-    investment: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v4"></path><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"></path><path d="M12 12h.01"></path></svg>`,
-    salary: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`
+const INCOME_CATEGORIES = {
+    salario: { name: 'Salário', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, color: '#10B981' },
+    mumbuca: { name: 'Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`, color: '#F59E0B' },
+    vendas: { name: 'Vendas', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`, color: '#3B82F6' },
+    outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`, color: '#64748B' },
 };
 
 const SPENDING_CATEGORIES = {
-    moradia: { name: 'Moradia', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
-    alimentacao: { name: 'Alimentação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5z"/><path d="M3 15V6a2 2 0 012-2h14a2 2 0 012 2v9"/></svg>`},
-    transporte: { name: 'Transporte', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v1"></path><path d="M14 9H4.5a2.5 2.5 0 0 0 0 5H14a2.5 2.5 0 0 0 0-5z"></path><path d="M5 15h14"></path><circle cx="7" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle></svg>` },
-    abastecimento_mumbuca: { name: 'Abastecimento com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v1"></path><path d="M14 9H4.5a2.5 2.5 0 0 0 0 5H14a2.5 2.5 0 0 0 0-5z"></path><path d="M5 15h14"></path><circle cx="7" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle></svg>` },
-    saude: { name: 'Saúde', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>` },
-    lazer: { name: 'Lazer', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>` },
-    educacao: { name: 'Educação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v14M8 16L4 14M16 16l4-2M12 22a4 4 0 0 0 4-4H8a4 4 0 0 0 4 4z"></path></svg>` },
-    dividas: { name: 'Dívidas', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>` },
-    pessoal: { name: 'Pessoal', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 16.5c-3.5 0-6.5 2-6.5 4.5h13c0-2.5-3-4.5-6.5-4.5z"></path><path d="M20.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path><path d="M3.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path></svg>` },
-    investimento: { name: 'Investimento para Viagem', icon: ICONS.investment },
-    shopping: { name: 'Compras com Mumbuca', icon: ICONS.shopping },
-    avulsos: { name: 'Avulsos', icon: ICONS.variable },
-    outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>` },
+    moradia: { name: 'Moradia', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`, color: '#3B82F6' },
+    alimentacao: { name: 'Alimentação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5z"/><path d="M3 15V6a2 2 0 012-2h14a2 2 0 012 2v9"/></svg>`, color: '#10B981' },
+    transporte: { name: 'Transporte', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`, color: '#F97316' }, // Used for Multas
+    abastecimento_mumbuca: { name: 'Abastecimento com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="3" x2="7" y2="21"></line><line x1="17" y1="3" x2="17" y2="21"></line><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>`, color: '#F59E0B' },
+    saude: { name: 'Saúde', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>`, color: '#EF4444' },
+    lazer: { name: 'Lazer', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`, color: '#EC4899' },
+    educacao: { name: 'Educação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v14M8 16L4 14M16 16l4-2M12 22a4 4 0 0 0 4-4H8a4 4 0 0 0 4 4z"></path></svg>`, color: '#6366F1' },
+    dividas: { name: 'Dívidas', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, color: '#78716C' },
+    pessoal: { name: 'Pessoal', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 16.5c-3.5 0-6.5 2-6.5 4.5h13c0-2.5-3-4.5-6.5-4.5z"></path><path d="M20.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path><path d="M3.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path></svg>`, color: '#A855F7' },
+    investimento: { name: 'Investimento para Viagem', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>`, color: '#84CC16' },
+    shopping: { name: 'Compras com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`, color: '#0EA5E9' },
+    avulsos: { name: 'Avulsos', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`, color: '#64748B' },
+    outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`, color: '#64748B' },
 };
 
 const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -49,11 +38,11 @@ const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
 // =================================================================================
 const initialMonthData = {
     incomes: [
-        { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true, paidDate: '2025-11-05' },
-        { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true, paidDate: '2025-11-05' },
-        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true, paidDate: '2025-11-15' },
-        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true, paidDate: '2025-11-15' },
-        { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true, paidDate: '2025-11-10' },
+        { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario' },
+        { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario' },
+        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca' },
+        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca' },
+        { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true, paidDate: '2025-11-10', category: 'outros' },
     ],
     expenses: [
         // Despesas Fixas
@@ -136,6 +125,7 @@ let currentModalType = '';
 let currentMonth = 11; // November
 let currentYear = 2025;
 let isBalanceVisible = true;
+let currentTransactionFilter = 'all'; // 'all', 'incomes', 'expenses'
 
 // =================================================================================
 // FIREBASE SYNC STATE
@@ -154,18 +144,16 @@ const elements = {
     splashScreen: document.getElementById('splash-screen'),
     appWrapper: document.getElementById('app-wrapper'),
     appHeader: document.getElementById('app-header'),
+    monthNavigatorContainer: document.getElementById('month-navigator-container'),
     
     // Home screen cards
     totalBalance: document.getElementById('totalBalance'),
-    availableIncome: document.getElementById('availableIncome'),
     monthlyExpenses: document.getElementById('monthlyExpenses'),
-    mumbucaBalance: document.getElementById('mumbucaBalance'),
 
     // Lists and other elements
     transactionsList: document.getElementById('transactionsList'),
+    recentTransactionsList: document.getElementById('recentTransactionsList'),
     goalsListContainer: document.getElementById('goalsListContainer'),
-    overviewChart: document.getElementById('overviewChart'),
-    overviewChartLegend: document.getElementById('overviewChartLegend'),
     mainContent: document.getElementById('main-content'),
     addModal: document.getElementById('addModal'),
     editModal: document.getElementById('editModal'),
@@ -177,6 +165,7 @@ const elements = {
     addForm: document.getElementById('addForm'),
     typeGroup: document.getElementById('typeGroup'),
     categoryGroup: document.getElementById('categoryGroup'),
+    incomeCategoryGroup: document.getElementById('incomeCategoryGroup'),
     sourceAccountGroup: document.getElementById('sourceAccountGroup'),
     installmentsGroup: document.getElementById('installmentsGroup'),
     dateGroup: document.getElementById('dateGroup'),
@@ -240,10 +229,10 @@ function parseCurrency(value) {
     return parseInt(digits, 10) / 100;
 }
 
-function formatDate(dateString) {
+function formatDate(dateString, options = { day: '2-digit', month: '2-digit' }) {
     if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00'); // Ensure correct date parsing
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return date.toLocaleDateString('pt-BR', options);
 }
 
 function simpleMarkdownToHtml(text) {
@@ -270,6 +259,17 @@ function populateCategorySelects() {
             }
         }
     });
+
+    const incomeCategorySelect = document.getElementById('incomeCategory');
+    if (incomeCategorySelect) {
+        incomeCategorySelect.innerHTML = '<option value="">Selecione...</option>';
+        for (const key in INCOME_CATEGORIES) {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = INCOME_CATEGORIES[key].name;
+            incomeCategorySelect.appendChild(option);
+        }
+    }
 
     const goalCategorySelect = document.getElementById('goalCategory');
     if (goalCategorySelect) {
@@ -352,8 +352,6 @@ function loadDataForCurrentMonth() {
         if (docSnap.exists()) {
             currentMonthData = JSON.parse(JSON.stringify(docSnap.data()));
         } else {
-            // If it's the very first time loading this user, use initial data.
-            // Otherwise, create a blank slate for the new month.
             const isFirstLoadEver = !Object.keys(currentMonthData).some(key => Array.isArray(currentMonthData[key]) && currentMonthData[key].length > 0);
             if (isFirstLoadEver && currentYear === 2025 && currentMonth === 11) {
                  currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
@@ -372,14 +370,11 @@ function loadDataForCurrentMonth() {
 
 async function createNewMonthData() {
     if (!currentUser || !isConfigured) return;
-
-    // Create a deep copy of the data to preserve, ensuring no circular references are carried over.
     const preservedData = {
         goals: JSON.parse(JSON.stringify(currentMonthData.goals || [])),
         bankAccounts: JSON.parse(JSON.stringify(currentMonthData.bankAccounts || [])),
         savingsGoals: JSON.parse(JSON.stringify(currentMonthData.savingsGoals || [])),
     };
-
     currentMonthData = {
         incomes: [],
         expenses: [],
@@ -389,7 +384,6 @@ async function createNewMonthData() {
         bankAccounts: preservedData.bankAccounts,
         savingsGoals: preservedData.savingsGoals,
     };
-
     saveData();
 }
 
@@ -401,12 +395,10 @@ function navigateTo(viewName) {
     elements.appViews.forEach(view => {
         view.classList.toggle('active', view.id === `view-${viewName}`);
     });
-
     elements.tabButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === viewName);
     });
-    
-    updateHeader(viewName);
+    updateUI();
 }
 
 function goToPrevMonth() {
@@ -429,42 +421,45 @@ function goToNextMonth() {
 
 function toggleBalanceVisibility() {
     isBalanceVisible = !isBalanceVisible;
-    const btn = document.querySelector('.visibility-btn');
-    if (!btn) return;
-    
+    const eyeOpen = document.querySelector('.visibility-btn-home .eye-open');
+    const eyeClosed = document.querySelector('.visibility-btn-home .eye-closed');
     if (isBalanceVisible) {
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
     } else {
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
     }
-    updateSummary();
+    updateUI();
 }
 
 function updateHeader(viewName) {
-    let title = '';
-    switch(viewName) {
-        case 'home': title = 'Resumo Mensal'; break;
-        case 'extrato': title = 'Extrato'; break;
-        case 'metas': title = 'Metas'; break;
-        case 'perfil': title = 'Perfil'; break;
-    }
+    let headerContent = '';
 
-    const monthName = MONTH_NAMES[currentMonth - 1];
-
-    const headerContent = `
-        <div class="header-content-wrapper">
-            <h2 class="header-title">${title}</h2>
-            <div class="month-navigator">
-                <button id="prev-month-btn" class="month-nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-                <span id="current-month-display">${monthName} ${currentYear}</span>
-                <button id="next-month-btn" class="month-nav-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    if (viewName === 'home') {
+        headerContent = `
+            <div class="header-home-content">
+                <div class="header-left">
+                    <img src="https://i.pravatar.cc/150?u=familia-bispo-brito" alt="Perfil" class="header-avatar">
+                    <div class="header-greeting">
+                        <span>Olá,</span>
+                        <strong>Família Bispo Brito</strong>
+                    </div>
+                </div>
+                <button class="action-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                 </button>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        let title = '';
+        switch(viewName) {
+            case 'extrato': title = 'Extrato Mensal'; break;
+            case 'metas': title = 'Metas'; break;
+            case 'perfil': title = 'Perfil'; break;
+        }
+        headerContent = `<h2 class="header-title-centered">${title}</h2>`;
+    }
     elements.appHeader.innerHTML = headerContent;
 }
 
@@ -473,95 +468,151 @@ function updateHeader(viewName) {
 // UI RENDERING
 // =================================================================================
 function updateUI() {
-    if(!currentUser) return; // Don't render if not logged in
+    if(!currentUser) return;
     
-    // The active view name might be lost on reload, so we get it from the active button
     const activeViewName = document.querySelector('.tab-btn.active')?.dataset.view || 'home';
-    updateHeader(activeViewName); // Update header with correct month name
+    updateHeader(activeViewName);
     
-    updateSummary();
-    renderTransactions();
-    renderGoalsPage();
-    renderOverviewChart();
+    switch(activeViewName) {
+        case 'home':
+            renderHomePage();
+            break;
+        case 'extrato':
+            renderTransactionsPage();
+            break;
+        case 'metas':
+            renderGoalsPage();
+            break;
+        case 'perfil':
+            // Perfil is static HTML
+            break;
+    }
 }
 
+function renderHomePage() {
+    updateSummary();
+    renderRecentTransactions();
+    renderExpenseChart();
+}
+
+function renderMonthNavigator() {
+    const monthName = MONTH_NAMES[currentMonth - 1];
+    const navHTML = `
+        <div class="month-navigator">
+            <button id="prev-month-btn" class="month-nav-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <span id="current-month-display">${monthName} ${currentYear}</span>
+            <button id="next-month-btn" class="month-nav-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+    `;
+    elements.monthNavigatorContainer.innerHTML = navHTML;
+    
+    document.getElementById('prev-month-btn').addEventListener('click', goToPrevMonth);
+    document.getElementById('next-month-btn').addEventListener('click', goToNextMonth);
+}
+
+
 function updateSummary() {
-    // Shared calculations
-    const allIncomes = currentMonthData.incomes || [];
     const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
     const hiddenValue = 'R$ ••••••';
 
-    // Card 1: Main Summary Card
     const totalBalance = (currentMonthData.bankAccounts || []).reduce((sum, acc) => sum + acc.balance, 0);
-    elements.totalBalance.textContent = isBalanceVisible ? formatCurrency(totalBalance) : hiddenValue;
+    if (elements.totalBalance) {
+        elements.totalBalance.textContent = isBalanceVisible ? formatCurrency(totalBalance) : hiddenValue;
+    }
 
-    const nonMumbucaIncomes = allIncomes.filter(i => !i.description.toUpperCase().includes('MUMBUCA'));
-    const totalNonMumbucaIncome = nonMumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const totalTravelInvestmentAmount = allExpenses
-        .filter(e => e.category === 'investimento')
-        .reduce((sum, expense) => sum + expense.amount, 0);
-    const availableIncome = totalNonMumbucaIncome - totalTravelInvestmentAmount;
-    elements.availableIncome.textContent = isBalanceVisible ? formatCurrency(availableIncome) : hiddenValue;
-
-    // Card 2: Monthly Expenses
     const paidExpensesAmount = allExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    elements.monthlyExpenses.textContent = isBalanceVisible ? formatCurrency(paidExpensesAmount) : hiddenValue;
-
-    // Card 3: Mumbuca Balance
-    const totalMumbucaIncome = allIncomes
-        .filter(i => i.description.toUpperCase().includes('MUMBUCA'))
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    const mumbucaSpending = allExpenses
-        .filter(item => item.category === 'shopping' || item.category === 'abastecimento_mumbuca')
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    const mumbucaBalance = totalMumbucaIncome - mumbucaSpending;
-    elements.mumbucaBalance.textContent = isBalanceVisible ? formatCurrency(mumbucaBalance) : hiddenValue;
+    if (elements.monthlyExpenses) {
+        elements.monthlyExpenses.textContent = isBalanceVisible ? formatCurrency(paidExpensesAmount) : hiddenValue;
+    }
 }
 
-function renderTransactions() {
-    const listElement = elements.transactionsList;
-    listElement.innerHTML = '';
-
-    const incomes = (currentMonthData.incomes || []).map(i => ({...i, type: 'income'}));
-    const expenses = (currentMonthData.expenses || []).map(e => ({...e, type: 'expense'}));
-    const shopping = (currentMonthData.shoppingItems || []).map(s => ({...s, type: 'expense'}));
-    const avulsos = (currentMonthData.avulsosItems || []).map(a => ({...a, type: 'expense'}));
-
-    const allTransactions = [...incomes, ...expenses, ...shopping, ...avulsos];
+function renderTransactionItem(item) {
+    const isIncome = item.type === 'income';
+    const categoryList = isIncome ? INCOME_CATEGORIES : SPENDING_CATEGORIES;
+    const categoryInfo = categoryList[item.category] || { icon: SPENDING_CATEGORIES.outros.icon, color: '#ccc' };
+    const icon = categoryInfo.icon;
+    const color = categoryInfo.color;
     
-    allTransactions.sort((a,b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
-
-    if (allTransactions.length === 0) {
-        listElement.innerHTML = `<div class="empty-state">${ICONS.expense}<div>Nenhuma transação registrada neste mês</div></div>`;
-        return;
-    }
-    
-    allTransactions.forEach(item => {
-        const li = document.createElement('div');
-        li.className = 'transaction-item';
-
-        const isIncome = item.type === 'income';
-        const categoryKey = isIncome ? (item.description.toUpperCase().includes('SALARIO') ? 'salary' : 'income') : item.category;
-        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || {};
-        const icon = isIncome ? ICONS.salary : (categoryInfo.icon || ICONS.expense);
-
-        li.innerHTML = `
-            <div class="transaction-icon ${isIncome ? 'income' : 'expense'}">
+    return `
+        <div class="transaction-item">
+            <div class="transaction-icon" style="background-color: ${color};">
                 ${icon}
             </div>
             <div class="transaction-details">
                 <p>${item.description}</p>
-                <span>${isIncome ? 'Receita' : 'Despesa'}</span>
+                <span>${formatDate(item.paidDate || item.dueDate)}</span>
             </div>
             <div class="transaction-amount ${isIncome ? 'income' : 'expense'}">
                 ${isIncome ? '+' : '-'} ${formatCurrency(item.amount)}
             </div>
-        `;
-        listElement.appendChild(li);
-    });
+        </div>
+    `;
 }
+
+function renderTransactionsPage() {
+    renderMonthNavigator();
+    const listElement = elements.transactionsList;
+    if (!listElement) return;
+
+    const allIncomes = (currentMonthData.incomes || []).map(i => ({...i, type: 'income'}));
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])].map(e => ({...e, type: 'expense'}));
+    
+    let allTransactions = [];
+    if (currentTransactionFilter === 'all') {
+        allTransactions = [...allIncomes, ...allExpenses];
+    } else if (currentTransactionFilter === 'incomes') {
+        allTransactions = allIncomes;
+    } else { // 'expenses'
+        allTransactions = allExpenses;
+    }
+    
+    allTransactions.sort((a,b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
+    
+    const totalIncome = allIncomes.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpense = allExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const monthBalance = totalIncome - totalExpense;
+
+    document.getElementById('extrato-summary-cards').innerHTML = `
+        <div class="summary-card-item"><span>Receitas</span><strong>${formatCurrency(totalIncome)}</strong></div>
+        <div class="summary-card-item"><span>Despesas</span><strong>${formatCurrency(totalExpense)}</strong></div>
+        <div class="summary-card-item"><span>Saldo</span><strong>${formatCurrency(monthBalance)}</strong></div>
+    `;
+
+    if (allTransactions.length === 0) {
+        listElement.innerHTML = `<div class="empty-state">Nenhuma transação registrada neste mês.</div>`;
+        return;
+    }
+
+    listElement.innerHTML = allTransactions.map(renderTransactionItem).join('');
+}
+
+
+function renderRecentTransactions() {
+    const listElement = elements.recentTransactionsList;
+    if (!listElement) return;
+
+    const allTransactions = [
+        ...(currentMonthData.incomes || []).map(i => ({...i, type: 'income'})),
+        ...(currentMonthData.expenses || []).map(e => ({...e, type: 'expense'})),
+        ...(currentMonthData.shoppingItems || []).map(s => ({...s, type: 'expense'})),
+        ...(currentMonthData.avulsosItems || []).map(a => ({...a, type: 'expense'}))
+    ];
+    allTransactions.sort((a,b) => new Date(b.paidDate || b.dueDate) - new Date(a.paidDate || a.dueDate));
+
+    const recent = allTransactions.slice(0, 3);
+
+    if (recent.length === 0) {
+        listElement.innerHTML = `<div class="empty-state-small">Nenhuma transação ainda.</div>`;
+        return;
+    }
+
+    listElement.innerHTML = recent.map(renderTransactionItem).join('');
+}
+
 
 function renderGoalsPage() {
     const listElement = elements.goalsListContainer;
@@ -571,95 +622,91 @@ function renderGoalsPage() {
     const savingsGoals = currentMonthData.savingsGoals || [];
     
     if (savingsGoals.length === 0) {
-        listElement.innerHTML = `<div class="empty-state">${ICONS.goal}<div>Nenhuma meta de poupança criada.</div></div>`;
+        listElement.innerHTML = `<div class="empty-state">Nenhuma meta de poupança criada.</div>`;
         return;
     }
 
-    savingsGoals.forEach(goal => {
+    listElement.innerHTML = savingsGoals.map(goal => {
         const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
-        const card = document.createElement('div');
-        card.className = 'goal-item';
-        card.innerHTML = `
-            <div class="goal-header">
-                <span class="goal-title">${goal.description}</span>
-                <span class="goal-percentage">${Math.round(progress)}%</span>
-            </div>
-            <div class="goal-progress-bar">
-                <div class="goal-progress-bar-inner" style="width: ${Math.min(progress, 100)}%;"></div>
+        return `
+            <div class="card goal-item">
+                <div class="goal-header">
+                    <span class="goal-title">${goal.description}</span>
+                    <span class="goal-percentage">${Math.round(progress)}%</span>
+                </div>
+                <div class="goal-progress-bar">
+                    <div class="goal-progress-bar-inner" style="width: ${Math.min(progress, 100)}%;"></div>
+                </div>
+                 <div class="goal-amounts">
+                    <span>${formatCurrency(goal.currentAmount)} de </span>
+                    <span class="target-amount">${formatCurrency(goal.targetAmount)}</span>
+                </div>
             </div>
         `;
-        listElement.appendChild(card);
-    });
+    }).join('');
 }
 
+function renderExpenseChart() {
+    const container = document.getElementById('expense-chart-container');
+    if (!container) return;
 
-function renderOverviewChart() {
-    const chartEl = elements.overviewChart;
-    const legendEl = elements.overviewChartLegend;
-    if (!chartEl || !legendEl) return;
-
-    chartEl.style.background = '';
-    legendEl.innerHTML = '';
-
-    const allPaidExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])].filter(e => e.paid);
-
-    if (allPaidExpenses.length === 0) {
-        legendEl.innerHTML = '<div class="empty-state-chart">Sem gastos para analisar.</div>';
+    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
+    if (allExpenses.length === 0) {
+        container.innerHTML = `<div class="section-header"><h3 class="section-title">Análise de Despesas</h3></div><div class="empty-state-small">Sem despesas para analisar.</div>`;
         return;
     }
 
-    const expensesByCategory = allPaidExpenses.reduce((acc, expense) => {
-        const categoryKey = expense.category || 'outros';
-        acc[categoryKey] = (acc[categoryKey] || 0) + expense.amount;
+    const totalSpent = allExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const spendingByCategory = allExpenses.reduce((acc, item) => {
+        if (!acc[item.category]) {
+            acc[item.category] = 0;
+        }
+        acc[item.category] += item.amount;
         return acc;
     }, {});
 
-    const totalExpenses = allPaidExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
 
-    const categoryColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ECC71', '#E74C3C', '#3498DB', '#F1C40F'];
-    let colorIndex = 0;
-
-    const sortedCategories = Object.entries(expensesByCategory)
-        .sort(([, a], [, b]) => b - a); // Sort by amount descending
-
-    const data = sortedCategories.map(([categoryKey, amount]) => {
-        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || { name: 'Outros' };
-        const color = categoryColors[colorIndex % categoryColors.length];
-        colorIndex++;
-        return {
-            label: categoryInfo.name,
-            value: amount,
-            color: color
-        };
-    });
-
-    let gradient = 'conic-gradient(';
+    let gradientString = '';
     let currentPercentage = 0;
+    const colors = [];
 
-    data.forEach(item => {
-        const percentage = (item.value / totalExpenses) * 100;
-        if (percentage < 0.1) return; // Don't show tiny slices
-
-        gradient += `${item.color} ${currentPercentage}% ${currentPercentage + percentage}%, `;
+    sortedCategories.forEach(([category, amount]) => {
+        const percentage = (amount / totalSpent) * 100;
+        const color = SPENDING_CATEGORIES[category]?.color || '#ccc';
+        colors.push(color);
+        gradientString += `${color} ${currentPercentage}% ${currentPercentage + percentage}%, `;
         currentPercentage += percentage;
-
-        const legendItem = document.createElement('div');
-        legendItem.className = 'legend-item';
-        legendItem.innerHTML = `
-            <div class="legend-info">
-                <div class="legend-dot" style="background-color: ${item.color}"></div>
-                ${item.label}
-            </div>
-            <div class="legend-values">
-                <span class="value">${formatCurrency(item.value)}</span>
-                <span class="percentage">(${percentage.toFixed(0)}%)</span>
-            </div>`;
-        legendEl.appendChild(legendItem);
     });
 
-    gradient = gradient.slice(0, -2) + ')';
-    chartEl.style.background = gradient;
+    gradientString = `conic-gradient(${gradientString.slice(0, -2)})`;
+
+    const legendHTML = sortedCategories.slice(0, 4).map(([category, amount], index) => {
+        const categoryInfo = SPENDING_CATEGORIES[category] || { name: 'Desconhecido' };
+        return `
+            <div class="legend-item">
+                <span class="legend-color-dot" style="background-color: ${colors[index]};"></span>
+                <span class="legend-label">${categoryInfo.name}</span>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+         <h3 class="section-title">Análise de Despesas</h3>
+         <div class="chart-wrapper">
+             <div class="donut-chart" style="background: ${gradientString};">
+                 <div class="chart-center-label">
+                    <span>Total</span>
+                    <strong>${formatCurrency(totalSpent)}</strong>
+                 </div>
+             </div>
+             <div class="chart-legend">
+                ${legendHTML}
+             </div>
+         </div>
+    `;
 }
+
 
 // =================================================================================
 // MODALS & FORMS
@@ -689,10 +736,11 @@ function openAddModal(type) {
 
     const dueDateGroup = document.getElementById('dueDateGroup');
     const cyclicGroup = document.getElementById('cyclicGroup');
+    const incomeCategoryGroup = document.getElementById('incomeCategoryGroup');
 
-    // Hide all optional fields first
     elements.typeGroup.style.display = 'none';
     elements.categoryGroup.style.display = 'none';
+    incomeCategoryGroup.style.display = 'none';
     elements.sourceAccountGroup.style.display = 'none';
     elements.installmentsGroup.style.display = 'none';
     cyclicGroup.style.display = 'none';
@@ -704,6 +752,7 @@ function openAddModal(type) {
         elements.dateGroup.style.display = 'block';
         elements.transactionDateLabel.textContent = 'Data do Recebimento';
         elements.transactionDateInput.value = todayString;
+        incomeCategoryGroup.style.display = 'block';
     } else { // 'expense' or default
         elements.addModalTitle.textContent = 'Adicionar Despesa';
         elements.typeGroup.style.display = 'block';
@@ -737,12 +786,15 @@ function handleAddFormSubmit(e) {
     if (currentModalType === 'income') {
         newItem.paidDate = data.transactionDate;
         newItem.paid = !!data.transactionDate;
+        newItem.category = data.incomeCategory;
         if (!currentMonthData.incomes) currentMonthData.incomes = [];
         currentMonthData.incomes.push(newItem);
     } else { // expense
         newItem.type = data.type;
         newItem.category = data.category;
         newItem.dueDate = data.dueDate;
+        newItem.paidDate = data.dueDate; // Assume paid on due date for new entries
+        newItem.paid = true; // Assume new manual entries are paid
         newItem.cyclic = data.cyclic === 'on';
         newItem.sourceAccountId = data.sourceAccount;
 
@@ -768,7 +820,6 @@ function handleAddFormSubmit(e) {
 // INITIALIZATION
 // =================================================================================
 function init() {
-    // Splash screen logic
     setTimeout(() => {
         elements.splashScreen.style.opacity = '0';
         elements.splashScreen.style.visibility = 'hidden';
@@ -781,22 +832,33 @@ function init() {
         btn.addEventListener('click', () => navigateTo(btn.dataset.view));
     });
     
-    // Use event delegation for month navigator buttons as header is dynamic
-    elements.appHeader.addEventListener('click', (e) => {
-        if (e.target.closest('#prev-month-btn')) {
-            goToPrevMonth();
+    document.body.addEventListener('click', (e) => {
+        const seeAllBtn = e.target.closest('.see-all-btn');
+        if (seeAllBtn) {
+            navigateTo(seeAllBtn.dataset.view);
         }
-        if (e.target.closest('#next-month-btn')) {
-            goToNextMonth();
+        const visibilityBtn = e.target.closest('.visibility-btn-home');
+        if (visibilityBtn) {
+            toggleBalanceVisibility();
         }
     });
 
-    document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
-    document.querySelector('.visibility-btn')?.addEventListener('click', toggleBalanceVisibility);
-    document.getElementById('add-transaction-fab')?.addEventListener('click', () => openAddModal('expense'));
+    document.getElementById('transaction-filter-container')?.addEventListener('click', e => {
+        const target = e.target.closest('.filter-btn');
+        if (target) {
+            currentTransactionFilter = target.dataset.filter;
+            document.querySelectorAll('#transaction-filter-container .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            target.classList.add('active');
+            renderTransactionsPage();
+        }
+    });
+
+    document.getElementById('home-add-expense-btn')?.addEventListener('click', () => openAddModal('expense'));
+    document.getElementById('home-add-income-btn')?.addEventListener('click', () => openAddModal('income'));
     elements.addForm.addEventListener('submit', handleAddFormSubmit);
 
-    // Modal closing listeners
     document.querySelectorAll('.close-modal-btn').forEach(btn => {
         btn.addEventListener('click', closeModal);
     });
@@ -805,9 +867,7 @@ function init() {
             if (e.target === modal) closeModal();
         });
     });
-
     
-    // Firebase Authentication
     if (isConfigured) {
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -822,7 +882,6 @@ function init() {
             }
         });
     } else {
-        // Firebase not configured, run in local mode.
         currentUser = { uid: "localUser" };
         currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
         updateUI();
@@ -831,5 +890,4 @@ function init() {
     navigateTo('home');
 }
 
-// Kick off the app
 document.addEventListener('DOMContentLoaded', init);
