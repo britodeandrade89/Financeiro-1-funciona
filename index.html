@@ -39,14 +39,7 @@
                 <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.27344 10.2344L12.0007 15.1011L21.728 10.2344L12.0007 5.36771L2.27344 10.2344Z" stroke="#FF8A00" stroke-width="2" stroke-miterlimit="10"/><path d="M12 21.0312V15.1006" stroke="#FF8A00" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.8643 18.5977L15.4326 16.6328" stroke="#FF8A00" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.13574 18.5977L8.56743 16.6328" stroke="#FF8A00" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M21.7279 10.2344V13.7656C21.7279 14.282 21.4921 14.767 21.0827 15.068L13.082 20.0016C12.4475 20.443 11.5525 20.443 10.918 20.0016L2.91728 15.068C2.50785 14.767 2.27207 14.282 2.27207 13.7656V10.2344C2.27207 9.71797 2.50785 9.23297 2.91728 8.93203L10.918 3.99844C11.5525 3.55703 12.4475 3.55703 13.082 3.99844L21.0827 8.93203C21.4921 9.23297 21.7279 9.71797 21.7279 10.2344Z" stroke="#FF8A00" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span>Finanças Bispo Brito</span>
             </div>
-            <h1>Bem-vindo(a) de volta!</h1>
-            <div class="pin-input">
-                <div class="pin-dot filled"></div>
-                <div class="pin-dot filled"></div>
-                <div class="pin-dot filled"></div>
-                <div class="pin-dot filled"></div>
-            </div>
-            <button class="btn btn-large">Entrar</button>
+            <h1 class="splash-loading-text">Carregando seus dados...</h1>
         </div>
     </div>
     
@@ -180,6 +173,7 @@
                     <div id="sourceAccountGroup" class="form-group"><label for="sourceAccount" class="form-label">Fonte do Pagamento</label><select id="sourceAccount" name="sourceAccount" class="form-select"></select></div>
                     <div id="typeGroup" class="form-group"><label for="type" class="form-label">Tipo</label><select id="type" name="type" class="form-select"><option value="fixed">Fixa</option><option value="variable">Variável</option></select></div>
                     <div id="categoryGroup" class="form-group"><label for="category" class="form-label">Categoria</label><select id="category" name="category" class="form-select"></select></div>
+                    <div id="dueDateGroup" class="form-group" style="display: none;"><label for="dueDate" class="form-label">Data de Vencimento</label><input type="date" id="dueDate" name="dueDate" class="form-input"></div>
                     <div id="dateGroup" class="form-group" style="display: none;"><label id="transactionDateLabel" for="transactionDate" class="form-label">Data</label><input type="date" id="transactionDate" name="transactionDate" class="form-input"></div>
                     <div id="installmentsGroup" class="form-row">
                         <div class="form-group"><label for="currentInstallment" class="form-label">Parcela Atual</label><input type="number" id="currentInstallment" name="currentInstallment" class="form-input" placeholder="Ex: 2"></div>

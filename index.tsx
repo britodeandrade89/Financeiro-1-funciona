@@ -372,12 +372,12 @@ function loadDataForCurrentMonth() {
 
 async function createNewMonthData() {
     if (!currentUser || !isConfigured) return;
-    
-    // Create a blank slate but preserve goals, accounts, and savings goals
+
+    // Create a deep copy of the data to preserve, ensuring no circular references are carried over.
     const preservedData = {
-        goals: currentMonthData.goals || [],
-        bankAccounts: currentMonthData.bankAccounts || [],
-        savingsGoals: currentMonthData.savingsGoals || []
+        goals: JSON.parse(JSON.stringify(currentMonthData.goals || [])),
+        bankAccounts: JSON.parse(JSON.stringify(currentMonthData.bankAccounts || [])),
+        savingsGoals: JSON.parse(JSON.stringify(currentMonthData.savingsGoals || [])),
     };
 
     currentMonthData = {
@@ -661,8 +661,9 @@ function renderOverviewChart() {
     chartEl.style.background = gradient;
 }
 
-
-// ... (Modal and Form handling functions remain largely the same) ...
+// =================================================================================
+// MODALS & FORMS
+// =================================================================================
 
 function openModal(modal) {
     modal.classList.add('active');
@@ -676,8 +677,92 @@ function closeModal() {
 }
 
 function openAddModal(type) {
-    // This is a placeholder now, can be wired to a FAB menu
+    currentModalType = type;
+    const form = elements.addForm;
+    form.reset();
+    
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    const todayString = today.toISOString().split('T')[0];
+
+    populateAccountSelects();
+
+    const dueDateGroup = document.getElementById('dueDateGroup');
+    const cyclicGroup = document.getElementById('cyclicGroup');
+
+    // Hide all optional fields first
+    elements.typeGroup.style.display = 'none';
+    elements.categoryGroup.style.display = 'none';
+    elements.sourceAccountGroup.style.display = 'none';
+    elements.installmentsGroup.style.display = 'none';
+    cyclicGroup.style.display = 'none';
+    elements.dateGroup.style.display = 'none';
+    dueDateGroup.style.display = 'none';
+
+    if (type === 'income') {
+        elements.addModalTitle.textContent = 'Adicionar Receita';
+        elements.dateGroup.style.display = 'block';
+        elements.transactionDateLabel.textContent = 'Data do Recebimento';
+        elements.transactionDateInput.value = todayString;
+    } else { // 'expense' or default
+        elements.addModalTitle.textContent = 'Adicionar Despesa';
+        elements.typeGroup.style.display = 'block';
+        elements.categoryGroup.style.display = 'block';
+        elements.sourceAccountGroup.style.display = 'block';
+        elements.installmentsGroup.style.display = 'flex';
+        cyclicGroup.style.display = 'block';
+        
+        dueDateGroup.style.display = 'block';
+        dueDateGroup.querySelector('input').value = todayString;
+    }
+    
+    openModal(elements.addModal);
 }
+
+
+function handleAddFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    const newItem = {
+        id: `${currentModalType === 'income' ? 'inc' : 'exp'}_${new Date().getTime()}`,
+        description: data.description,
+        amount: parseCurrency(data.amount),
+        paid: false,
+        paidDate: null,
+    };
+
+    if (currentModalType === 'income') {
+        newItem.paidDate = data.transactionDate;
+        newItem.paid = !!data.transactionDate;
+        if (!currentMonthData.incomes) currentMonthData.incomes = [];
+        currentMonthData.incomes.push(newItem);
+    } else { // expense
+        newItem.type = data.type;
+        newItem.category = data.category;
+        newItem.dueDate = data.dueDate;
+        newItem.cyclic = data.cyclic === 'on';
+        newItem.sourceAccountId = data.sourceAccount;
+
+        const currentInstallment = parseInt(data.currentInstallment, 10);
+        const totalInstallments = parseInt(data.totalInstallments, 10);
+
+        if (!isNaN(currentInstallment) && !isNaN(totalInstallments) && totalInstallments > 0) {
+            newItem.current = currentInstallment;
+            newItem.total = totalInstallments;
+        }
+
+        if (!currentMonthData.expenses) currentMonthData.expenses = [];
+        currentMonthData.expenses.push(newItem);
+    }
+
+    saveData();
+    closeModal();
+    form.reset();
+}
+
 
 // =================================================================================
 // INITIALIZATION
@@ -689,6 +774,8 @@ function init() {
         elements.splashScreen.style.visibility = 'hidden';
         elements.appWrapper.classList.remove('hidden');
     }, 2000);
+
+    populateCategorySelects();
 
     elements.tabButtons.forEach(btn => {
         btn.addEventListener('click', () => navigateTo(btn.dataset.view));
@@ -706,6 +793,18 @@ function init() {
 
     document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
     document.querySelector('.visibility-btn')?.addEventListener('click', toggleBalanceVisibility);
+    document.getElementById('add-transaction-fab')?.addEventListener('click', () => openAddModal('expense'));
+    elements.addForm.addEventListener('submit', handleAddFormSubmit);
+
+    // Modal closing listeners
+    document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', closeModal);
+    });
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeModal();
+        });
+    });
 
     
     // Firebase Authentication

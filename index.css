@@ -51,7 +51,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .splash-logo {
@@ -63,31 +63,17 @@ body {
     color: var(--text);
 }
 
-.splash-content h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.pin-input {
-    display: flex;
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.pin-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: var(--border);
-}
-.pin-dot.filled {
-    background-color: var(--text);
+.splash-loading-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--text-light);
 }
 
 
 /* App Layout */
 #app-wrapper.hidden {
-    display: none;
+    visibility: hidden;
+    opacity: 0;
 }
 
 #app-wrapper {
@@ -106,10 +92,10 @@ body {
     padding-bottom: 90px; /* Space for tab bar */
 }
 
-.app-view {
+#main-content > .app-view {
     display: none;
 }
-.app-view.active {
+#main-content > .app-view.active {
     display: block;
     animation: fadeIn 0.3s ease-in-out;
 }
