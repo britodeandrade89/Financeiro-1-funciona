@@ -9,8 +9,8 @@ import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 // ICONS & CATEGORIES
 // =================================================================================
 const INCOME_CATEGORIES = {
-    salario: { name: 'Salário', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, color: '#10B981' },
-    mumbuca: { name: 'Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`, color: '#F59E0B' },
+    salario: { name: 'Salário', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"></line><line x1="6" y1="18" x2="6" y2="11"></line><line x1="10" y1="18" x2="10" y2="11"></line><line x1="14" y1="18" x2="14" y2="11"></line><line x1="18" y1="18" x2="18" y2="11"></line><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon></svg>`, color: '#C52328' },
+    mumbuca: { name: 'Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9.782L9.531 8.369V5.543L12 4.13l2.469 1.413v2.826zm2.469 5.652L12 16.848l-2.469-1.413v-2.826L12 11.2l2.469 1.413zM9.531 14.13v-2.826L7.062 9.891v2.826zm4.938 0v-2.826L16.938 9.89v2.826zM7.062 8.369L4.594 6.957v5.652L7.062 14.13zm9.876 0l2.468-1.412v5.652L16.938 14.13zM12 2L4.594 6.25v7.5L12 18l7.406-4.25v-7.5z"/></svg>`, color: '#D81920' },
     vendas: { name: 'Vendas', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`, color: '#3B82F6' },
     outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`, color: '#64748B' },
 };
@@ -19,14 +19,14 @@ const SPENDING_CATEGORIES = {
     moradia: { name: 'Moradia', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`, color: '#3B82F6' },
     alimentacao: { name: 'Alimentação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5z"/><path d="M3 15V6a2 2 0 012-2h14a2 2 0 012 2v9"/></svg>`, color: '#10B981' },
     transporte: { name: 'Transporte', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`, color: '#F97316' }, // Used for Multas
-    abastecimento_mumbuca: { name: 'Abastecimento com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="3" x2="7" y2="21"></line><line x1="17" y1="3" x2="17" y2="21"></line><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>`, color: '#F59E0B' },
+    abastecimento_mumbuca: { name: 'Abastecimento com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9.782L9.531 8.369V5.543L12 4.13l2.469 1.413v2.826zm2.469 5.652L12 16.848l-2.469-1.413v-2.826L12 11.2l2.469 1.413zM9.531 14.13v-2.826L7.062 9.891v2.826zm4.938 0v-2.826L16.938 9.89v2.826zM7.062 8.369L4.594 6.957v5.652L7.062 14.13zm9.876 0l2.468-1.412v5.652L16.938 14.13zM12 2L4.594 6.25v7.5L12 18l7.406-4.25v-7.5z"/></svg>`, color: '#D81920' },
     saude: { name: 'Saúde', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>`, color: '#EF4444' },
     lazer: { name: 'Lazer', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`, color: '#EC4899' },
     educacao: { name: 'Educação', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v14M8 16L4 14M16 16l4-2M12 22a4 4 0 0 0 4-4H8a4 4 0 0 0 4 4z"></path></svg>`, color: '#6366F1' },
     dividas: { name: 'Dívidas', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`, color: '#78716C' },
     pessoal: { name: 'Pessoal', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 16.5c-3.5 0-6.5 2-6.5 4.5h13c0-2.5-3-4.5-6.5-4.5z"></path><path d="M20.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path><path d="M3.5 12c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5z"></path></svg>`, color: '#A855F7' },
     investimento: { name: 'Investimento para Viagem', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>`, color: '#84CC16' },
-    shopping: { name: 'Compras com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`, color: '#0EA5E9' },
+    shopping: { name: 'Compras com Mumbuca', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9.782L9.531 8.369V5.543L12 4.13l2.469 1.413v2.826zm2.469 5.652L12 16.848l-2.469-1.413v-2.826L12 11.2l2.469 1.413zM9.531 14.13v-2.826L7.062 9.891v2.826zm4.938 0v-2.826L16.938 9.89v2.826zM7.062 8.369L4.594 6.957v5.652L7.062 14.13zm9.876 0l2.468-1.412v5.652L16.938 14.13zM12 2L4.594 6.25v7.5L12 18l7.406-4.25v-7.5z"/></svg>`, color: '#D81920' },
     avulsos: { name: 'Avulsos', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`, color: '#64748B' },
     outros: { name: 'Outros', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`, color: '#64748B' },
 };
@@ -38,11 +38,11 @@ const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
 // =================================================================================
 const initialMonthData = {
     incomes: [
-        { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario' },
-        { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario' },
-        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca' },
-        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca' },
-        { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true, paidDate: '2025-11-10', category: 'outros' },
+        { id: "inc_nov_1", description: 'SALARIO MARCELLY', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario', cyclic: true },
+        { id: "inc_nov_2", description: 'SALARIO ANDRE', amount: 3349.92, paid: true, paidDate: '2025-11-05', category: 'salario', cyclic: true },
+        { id: "inc_nov_3", description: 'MUMBUCA MARCELLY', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca', cyclic: true },
+        { id: "inc_nov_4", description: 'MUMBUCA ANDRE', amount: 650.00, paid: true, paidDate: '2025-11-15', category: 'mumbuca', cyclic: true },
+        { id: "inc_nov_5", description: 'Dinheiro que o seu Claudio deu', amount: 100.00, paid: true, paidDate: '2025-11-10', category: 'outros', cyclic: false },
     ],
     expenses: [
         // Despesas Fixas
@@ -235,6 +235,18 @@ function formatDate(dateString, options = { day: '2-digit', month: '2-digit' }) 
     return date.toLocaleDateString('pt-BR', options);
 }
 
+function getNextMonthDate(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString + 'T00:00:00');
+    const originalDay = date.getDate();
+    date.setMonth(date.getMonth() + 1);
+    // Handle edge case of month-end dates (e.g., Jan 31 -> Feb 28/29)
+    if (date.getDate() !== originalDay) {
+        date.setDate(0); // Go to last day of previous month which is the new month
+    }
+    return date.toISOString().split('T')[0];
+}
+
 function simpleMarkdownToHtml(text) {
     return text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -316,7 +328,7 @@ async function saveDataToFirestore() {
     isSyncing = true;
     syncStatus = 'syncing';
 
-    const monthKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    const monthKey = `${currentYear}-${(currentMonth).toString().padStart(2, '0')}`;
     const docRef = doc(db, 'users', currentUser.uid, 'months', monthKey);
 
     try {
@@ -345,21 +357,17 @@ function loadDataForCurrentMonth() {
         firestoreUnsubscribe();
     }
 
-    const monthKey = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    const monthKey = `${currentYear}-${(currentMonth).toString().padStart(2, '0')}`;
     const docRef = doc(db, 'users', currentUser.uid, 'months', monthKey);
     
     firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             currentMonthData = JSON.parse(JSON.stringify(docSnap.data()));
+            updateUI();
         } else {
-            const isFirstLoadEver = !Object.keys(currentMonthData).some(key => Array.isArray(currentMonthData[key]) && currentMonthData[key].length > 0);
-            if (isFirstLoadEver && currentYear === 2025 && currentMonth === 11) {
-                 currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
-            } else {
-                 createNewMonthData();
-            }
+             // If navigating to a future month, create its data based on the previous one.
+            createNewMonthData();
         }
-        updateUI();
     }, (error) => {
         console.error("Error listening to Firestore:", error);
         syncStatus = 'error';
@@ -370,20 +378,46 @@ function loadDataForCurrentMonth() {
 
 async function createNewMonthData() {
     if (!currentUser || !isConfigured) return;
-    const preservedData = {
-        goals: JSON.parse(JSON.stringify(currentMonthData.goals || [])),
-        bankAccounts: JSON.parse(JSON.stringify(currentMonthData.bankAccounts || [])),
-        savingsGoals: JSON.parse(JSON.stringify(currentMonthData.savingsGoals || [])),
-    };
+    
+    // The most important step to prevent circular reference errors.
+    const prevMonthData = JSON.parse(JSON.stringify(currentMonthData));
+
+    // Carry over cyclic incomes
+    const newIncomes = (prevMonthData.incomes || [])
+        .filter(income => income.cyclic)
+        .map(income => ({
+            ...income,
+            id: `inc_${new Date().getTime()}_${Math.random()}`,
+            paid: false,
+            paidDate: null,
+        }));
+
+    // Carry over cyclic and installment expenses
+    const newExpenses = (prevMonthData.expenses || [])
+        .map(exp => {
+            const newId = `exp_${new Date().getTime()}_${Math.random()}`;
+            const newDueDate = getNextMonthDate(exp.dueDate);
+
+            if (exp.cyclic) {
+                return { ...exp, id: newId, paid: false, paidDate: null, dueDate: newDueDate };
+            }
+            if (exp.current && exp.total && exp.current < exp.total) {
+                return { ...exp, id: newId, current: exp.current + 1, paid: false, paidDate: null, dueDate: newDueDate };
+            }
+            return null;
+        })
+        .filter(Boolean); // Remove null entries
+
     currentMonthData = {
-        incomes: [],
-        expenses: [],
+        incomes: newIncomes,
+        expenses: newExpenses,
         shoppingItems: [],
         avulsosItems: [],
-        goals: preservedData.goals,
-        bankAccounts: preservedData.bankAccounts,
-        savingsGoals: preservedData.savingsGoals,
+        goals: prevMonthData.goals || [],
+        bankAccounts: prevMonthData.bankAccounts || [],
+        savingsGoals: prevMonthData.savingsGoals || [],
     };
+    
     saveData();
 }
 
@@ -736,6 +770,7 @@ function openAddModal(type) {
 
     const dueDateGroup = document.getElementById('dueDateGroup');
     const cyclicGroup = document.getElementById('cyclicGroup');
+    const incomeCyclicGroup = document.getElementById('incomeCyclicGroup');
     const incomeCategoryGroup = document.getElementById('incomeCategoryGroup');
 
     elements.typeGroup.style.display = 'none';
@@ -744,6 +779,7 @@ function openAddModal(type) {
     elements.sourceAccountGroup.style.display = 'none';
     elements.installmentsGroup.style.display = 'none';
     cyclicGroup.style.display = 'none';
+    incomeCyclicGroup.style.display = 'none';
     elements.dateGroup.style.display = 'none';
     dueDateGroup.style.display = 'none';
 
@@ -753,6 +789,7 @@ function openAddModal(type) {
         elements.transactionDateLabel.textContent = 'Data do Recebimento';
         elements.transactionDateInput.value = todayString;
         incomeCategoryGroup.style.display = 'block';
+        incomeCyclicGroup.style.display = 'block';
     } else { // 'expense' or default
         elements.addModalTitle.textContent = 'Adicionar Despesa';
         elements.typeGroup.style.display = 'block';
@@ -787,6 +824,7 @@ function handleAddFormSubmit(e) {
         newItem.paidDate = data.transactionDate;
         newItem.paid = !!data.transactionDate;
         newItem.category = data.incomeCategory;
+        newItem.cyclic = data.incomeCyclic === 'on';
         if (!currentMonthData.incomes) currentMonthData.incomes = [];
         currentMonthData.incomes.push(newItem);
     } else { // expense
@@ -873,7 +911,19 @@ function init() {
             if (user) {
                 currentUser = user;
                 syncStatus = 'syncing';
-                loadDataForCurrentMonth();
+                const initialMonthKey = `${currentYear}-${(currentMonth).toString().padStart(2, '0')}`;
+                const docRef = doc(db, 'users', currentUser.uid, 'months', initialMonthKey);
+                getDoc(docRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                         loadDataForCurrentMonth();
+                    } else {
+                        currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
+                        saveDataToFirestore().then(() => {
+                           loadDataForCurrentMonth();
+                        });
+                    }
+                });
+
             } else {
                 signInAnonymously(auth).catch(error => {
                     console.error("Anonymous sign-in failed:", error);
