@@ -6,9 +6,9 @@
     <title>Controle Financeiro Bispo-Brito</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#14b8a6">
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Finanças AI">
     <link rel="apple-touch-icon" href="icon.svg">
 
@@ -108,25 +108,48 @@
                     <!-- 1. Entrada de Salários -->
                     <div id="card-salary" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada de Salários</div></div>
-                        <div id="salaryIncome" class="summary-value-small">R$ 0,00</div>
+                        <div id="salaryIncome" class="summary-value-small">R$ 0,00 <span class="summary-value-label">Recebidos</span></div>
                         <div class="summary-progress-bar"><div id="salaryIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="salaryIncomeSubtitle" class="summary-details"></div>
+                        <div class="stats-grid">
+                             <div class="stat-item">
+                                 <span class="stat-label">Total Previsto</span>
+                                 <span id="salaryTotalValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-label">A Receber</span>
+                                 <span id="salaryPendingValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                        </div>
                     </div>
 
                     <!-- 2. Despesas Fixas e Variáveis -->
                     <div id="card-expenses" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Despesas Fixas e Variáveis</div></div>
-                        <div id="fixedVariableExpenses" class="summary-value-small">R$ 0,00</div>
+                        <div id="fixedVariableExpenses" class="summary-value-small">R$ 0,00 <span class="summary-value-label">Pagos</span></div>
                         <div class="summary-progress-bar"><div id="fixedVariableExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="fixedVariableExpensesSubtitle" class="summary-details"></div>
+                         <div class="stats-grid">
+                             <div class="stat-item">
+                                 <span class="stat-label">Total da Fatura</span>
+                                 <span id="expensesTotalValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-label">A Pagar</span>
+                                 <span id="expensesPendingValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                        </div>
                     </div>
 
                     <!-- 3. Restante do Salário -->
                     <div id="card-remainder" class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Restante do Salário</div></div>
+                        <div class="summary-header"><div class="summary-title">Balanço Salário</div></div>
                         <div id="salaryRemainder" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="salaryRemainderProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="salaryRemainderSubtitle" class="summary-details"></div>
+                         <div class="stats-grid">
+                             <div class="stat-item" style="grid-column: span 2;">
+                                 <span class="stat-label">Resumo</span>
+                                 <span class="stat-value">Salário Total - Despesas Totais</span>
+                             </div>
+                        </div>
                     </div>
 
                     <!-- SEPARADOR -->
@@ -136,34 +159,50 @@
                     <!-- 4. Entrada de Mumbuca -->
                     <div id="card-mumbuca-income" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada Mumbuca</div></div>
-                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
+                        <div id="mumbucaIncome" class="summary-value-small">R$ 0,00 <span class="summary-value-label">Recebidos</span></div>
                         <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
+                        <div class="stats-grid">
+                             <div class="stat-item">
+                                 <span class="stat-label">Total Previsto</span>
+                                 <span id="mumbucaTotalValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-label">A Receber</span>
+                                 <span id="mumbucaPendingValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                        </div>
                     </div>
 
                     <!-- 5. Gastos com Mumbuca -->
                     <div id="card-mumbuca-expenses" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Gastos com Mumbuca</div></div>
-                        <div id="mumbucaExpenses" class="summary-value-small">R$ 0,00</div>
+                        <div id="mumbucaExpenses" class="summary-value-small">R$ 0,00 <span class="summary-value-label">Pagos</span></div>
                         <div class="summary-progress-bar"><div id="mumbucaExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="mumbucaExpensesSubtitle" class="summary-details"></div>
+                         <div class="stats-grid">
+                             <div class="stat-item">
+                                 <span class="stat-label">Total Gastos</span>
+                                 <span id="mumbucaExpensesTotalValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-label">A Pagar</span>
+                                 <span id="mumbucaExpensesPendingValue" class="stat-value">R$ 0,00</span>
+                             </div>
+                        </div>
                     </div>
 
                     <!-- 6. Saldo de Mumbuca -->
                     <div id="card-mumbuca-balance" class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
+                        <div class="summary-header"><div class="summary-title">Balanço Mumbuca</div></div>
                         <div id="mumbucaBalance" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="mumbucaBalanceProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="mumbucaBalanceSubtitle" class="summary-details"></div>
+                         <div class="stats-grid">
+                             <div class="stat-item" style="grid-column: span 2;">
+                                 <span class="stat-label">Resumo</span>
+                                 <span class="stat-value">Entrada Total - Gastos Totais</span>
+                             </div>
+                        </div>
                     </div>
                     
-                    <!-- TOTAL GERAL (APENAS REFERÊNCIA) -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Entrada Geral (Total)</div></div>
-                        <div id="generalIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="generalIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
-                        <div id="generalIncomeSubtitle" class="summary-details"></div>
-                    </div>
                 </div>
 
                 <div id="debtSummaryContainer"></div>
