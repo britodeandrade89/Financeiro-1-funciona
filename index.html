@@ -14,7 +14,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
     
 <script type="importmap">
@@ -101,24 +101,10 @@
         </div>
 
         <main id="main-content">
-            <div id="pwa-install-banner" class="pwa-install-banner">
-                <div class="pwa-install-banner-content">
-                    <img src="icon.svg" alt="Ícone do App" class="pwa-install-icon">
-                    <div class="pwa-install-text">
-                        <strong>Instale o App</strong>
-                        <span>Tenha acesso rápido na sua tela inicial.</span>
-                    </div>
-                    <button id="pwa-install-btn" class="btn">Instalar</button>
-                    <button id="pwa-close-btn" class="action-btn close-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-            </div>
-
             <!-- HOME VIEW -->
             <div id="view-home" class="app-view active">
                 <div class="info-cards-grid">
-                    <!-- ORDEM SOLICITADA: -->
+                    <!-- SEÇÃO 1: SALÁRIO E DESPESAS GERAIS -->
                     <!-- 1. Entrada de Salários -->
                     <div id="card-salary" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada de Salários</div></div>
@@ -135,7 +121,7 @@
                         <div id="fixedVariableExpensesSubtitle" class="summary-details"></div>
                     </div>
 
-                    <!-- 3. Restante do Salário (NOVO) -->
+                    <!-- 3. Restante do Salário -->
                     <div id="card-remainder" class="summary-card">
                         <div class="summary-header"><div class="summary-title">Restante do Salário</div></div>
                         <div id="salaryRemainder" class="summary-value-small">R$ 0,00</div>
@@ -143,26 +129,40 @@
                         <div id="salaryRemainderSubtitle" class="summary-details"></div>
                     </div>
 
-                    <!-- Outros Cards de Suporte -->
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
+                    <!-- SEPARADOR -->
+                    <div class="card-separator"></div>
+
+                    <!-- SEÇÃO 2: MUMBUCA -->
+                    <!-- 4. Entrada de Mumbuca -->
+                    <div id="card-mumbuca-income" class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Entrada Mumbuca</div></div>
                         <div id="mumbucaIncome" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div class="summary-progress-bar"><div id="mumbucaIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="mumbucaIncomeSubtitle" class="summary-details"></div>
                     </div>
+
+                    <!-- 5. Gastos com Mumbuca -->
+                    <div id="card-mumbuca-expenses" class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Gastos com Mumbuca</div></div>
+                        <div id="mumbucaExpenses" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="mumbucaExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
+                        <div id="mumbucaExpensesSubtitle" class="summary-details"></div>
+                    </div>
+
+                    <!-- 6. Saldo de Mumbuca -->
+                    <div id="card-mumbuca-balance" class="summary-card">
+                        <div class="summary-header"><div class="summary-title">Saldo Mumbuca</div></div>
+                        <div id="mumbucaBalance" class="summary-value-small">R$ 0,00</div>
+                        <div class="summary-progress-bar"><div id="mumbucaBalanceProgressBar" class="summary-progress-bar-inner income"></div></div>
+                        <div id="mumbucaBalanceSubtitle" class="summary-details"></div>
+                    </div>
                     
+                    <!-- TOTAL GERAL (APENAS REFERÊNCIA) -->
                     <div class="summary-card">
                         <div class="summary-header"><div class="summary-title">Entrada Geral (Total)</div></div>
                         <div id="generalIncome" class="summary-value-small">R$ 0,00</div>
                         <div class="summary-progress-bar"><div id="generalIncomeProgressBar" class="summary-progress-bar-inner income"></div></div>
                         <div id="generalIncomeSubtitle" class="summary-details"></div>
-                    </div>
-                    
-                    <div class="summary-card">
-                        <div class="summary-header"><div class="summary-title">Gastos Totais (Geral)</div></div>
-                        <div id="generalExpenses" class="summary-value-small">R$ 0,00</div>
-                        <div class="summary-progress-bar"><div id="generalExpensesProgressBar" class="summary-progress-bar-inner expense"></div></div>
-                        <div id="generalExpensesSubtitle" class="summary-details"></div>
                     </div>
                 </div>
 
