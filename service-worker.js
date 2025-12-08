@@ -1,5 +1,5 @@
 // @ts-nocheck
-const CACHE_NAME = 'finance-app-v14'; // Incremented version for Firestore error fix
+const CACHE_NAME = 'finance-app-v15'; // Incremented version for Firestore error fix
 
 // All assets needed for the app shell to function offline.
 const ASSETS_TO_CACHE = [

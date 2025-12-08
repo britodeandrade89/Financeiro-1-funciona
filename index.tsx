@@ -93,8 +93,10 @@ let ai = null;
 let chat = null;
 let currentMonthData = JSON.parse(JSON.stringify(initialMonthData));
 let currentModalType = '';
+// Force update on load
 let currentMonth = new Date().getMonth() + 1;
 let currentYear = new Date().getFullYear();
+
 let deferredPrompt;
 let showBalance = true;
 let isOfflineMode = false; // Add offline flag
@@ -115,6 +117,7 @@ let syncErrorDetails = '';
 const elements = {
     monthDisplay: document.getElementById('monthDisplay'),
     currentDateDisplay: document.getElementById('currentDateDisplay'),
+    headerGreeting: document.getElementById('headerGreeting'),
     
     // Header Balance
     headerBalanceValue: document.getElementById('headerBalanceValue'),
@@ -127,30 +130,43 @@ const elements = {
     closeSidebarBtn: document.getElementById('closeSidebarBtn'),
     
     // Home screen cards
-    generalIncome: document.getElementById('generalIncome'),
-    generalIncomeProgressBar: document.getElementById('generalIncomeProgressBar'),
-    generalIncomeSubtitle: document.getElementById('generalIncomeSubtitle'),
+    cardSalary: document.getElementById('card-salary'),
     salaryIncome: document.getElementById('salaryIncome'),
     salaryIncomeProgressBar: document.getElementById('salaryIncomeProgressBar'),
     salaryIncomeSubtitle: document.getElementById('salaryIncomeSubtitle'),
-    availableIncome: document.getElementById('availableIncome'),
-    availableIncomeProgressBar: document.getElementById('availableIncomeProgressBar'),
-    availableIncomeSubtitle: document.getElementById('availableIncomeSubtitle'),
+    
+    cardExpenses: document.getElementById('card-expenses'),
+    fixedVariableExpenses: document.getElementById('fixedVariableExpenses'),
+    fixedVariableExpensesProgressBar: document.getElementById('fixedVariableExpensesProgressBar'),
+    fixedVariableExpensesSubtitle: document.getElementById('fixedVariableExpensesSubtitle'),
+
+    cardRemainder: document.getElementById('card-remainder'),
+    salaryRemainder: document.getElementById('salaryRemainder'),
+    salaryRemainderProgressBar: document.getElementById('salaryRemainderProgressBar'),
+    salaryRemainderSubtitle: document.getElementById('salaryRemainderSubtitle'),
+
+    // Other Cards
+    generalIncome: document.getElementById('generalIncome'),
+    generalIncomeProgressBar: document.getElementById('generalIncomeProgressBar'),
+    generalIncomeSubtitle: document.getElementById('generalIncomeSubtitle'),
+    
     mumbucaIncome: document.getElementById('mumbucaIncome'),
     mumbucaIncomeProgressBar: document.getElementById('mumbucaIncomeProgressBar'),
     mumbucaIncomeSubtitle: document.getElementById('mumbucaIncomeSubtitle'),
     generalExpenses: document.getElementById('generalExpenses'),
     generalExpensesProgressBar: document.getElementById('generalExpensesProgressBar'),
     generalExpensesSubtitle: document.getElementById('generalExpensesSubtitle'),
+    
+    // debtsAndBills is redundant now or part of general expenses, but kept for legacy structure
     debtsAndBills: document.getElementById('debtsAndBills'),
     debtsAndBillsProgressBar: document.getElementById('debtsAndBillsProgressBar'),
     debtsAndBillsSubtitle: document.getElementById('debtsAndBillsSubtitle'),
+    
+    // Avulsos Budget
     avulsosBudget: document.getElementById('avulsosBudget'),
     avulsosBudgetProgressBar: document.getElementById('avulsosBudgetProgressBar'),
     avulsosBudgetSubtitle: document.getElementById('avulsosBudgetSubtitle'),
-    fixedVariableExpenses: document.getElementById('fixedVariableExpenses'),
-    fixedVariableExpensesProgressBar: document.getElementById('fixedVariableExpensesProgressBar'),
-    fixedVariableExpensesSubtitle: document.getElementById('fixedVariableExpensesSubtitle'),
+
     debtSummaryContainer: document.getElementById('debtSummaryContainer'),
 
     // Lists and other elements
@@ -165,7 +181,6 @@ const elements = {
     monthlyAnalysisSection: document.getElementById('monthlyAnalysisSection'),
     appContainer: document.getElementById('app-container'),
     mainContent: document.getElementById('main-content'),
-    monthSelector: document.querySelector('.month-selector'),
     addModal: document.getElementById('addModal'),
     editModal: document.getElementById('editModal'),
     aiModal: document.getElementById('aiModal'),
@@ -254,7 +269,15 @@ function formatDate(dateString) {
 }
 
 function getTodayFormatted() {
-    return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    // Full date: 08 de dezembro de 2026
+    return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
 }
 
 function simpleMarkdownToHtml(text) {
@@ -347,6 +370,20 @@ async function saveDataToFirestore() {
         updateLastSyncTime(true);
     } catch (error) {
         console.error("Error saving data to Firestore:", error);
+        
+        // Handle permission errors by switching to offline mode
+        if (error.code === 'permission-denied' || error.code === 'unavailable') {
+            console.warn("Permission denied during save. Switching to Offline Mode.");
+            isOfflineMode = true;
+            syncStatus = 'disconnected';
+            
+            // Fallback save locally immediately
+            const monthKey = `financeData_${currentYear}_${currentMonth}`;
+            localStorage.setItem(monthKey, JSON.stringify(currentMonthData));
+            updateSyncButtonState();
+            return;
+        }
+
         syncStatus = 'error';
         syncErrorDetails = "Não foi possível salvar os dados na nuvem.";
     } finally {
@@ -397,29 +434,29 @@ function loadDataForCurrentMonth() {
         }
         updateMonthDisplay();
     }, (error) => {
-        console.error("Error listening to Firestore:", error);
+        console.warn("Error listening to Firestore (Snapshot):", error.code, error.message);
         
-        // Handle permission denied or other connectivity errors by switching to offline mode
-        if (error.code === 'permission-denied' || error.code === 'unavailable') {
-            console.warn("Permissão negada ou indisponível. Ativando modo offline.");
-            isOfflineMode = true;
-            syncStatus = 'error';
-            syncErrorDetails = "Modo Offline Ativado.";
-            
-            if (firestoreUnsubscribe) firestoreUnsubscribe();
-            
-            // Try loading from local storage immediately
-            const localKey = `financeData_${currentYear}_${currentMonth}`;
-            const saved = localStorage.getItem(localKey);
-            if (saved) {
-                currentMonthData = JSON.parse(saved);
-            } else {
-                createNewMonthData(); // Will execute with isOfflineMode true
-                return;
-            }
-            updateUI();
-            updateMonthDisplay();
-            updateSyncButtonState();
+        // Robust error handling: Switch to offline mode on permission errors
+        if (error.code === 'permission-denied' || error.code === 'unavailable' || error.message.includes('permission')) {
+             console.warn("Ativando modo offline devido a erro de permissão ou conexão.");
+             isOfflineMode = true;
+             syncStatus = 'error';
+             syncErrorDetails = "Modo Offline (Permissão Negada)";
+             
+             if (firestoreUnsubscribe) firestoreUnsubscribe();
+             
+             // Try loading from local storage immediately
+             const localKey = `financeData_${currentYear}_${currentMonth}`;
+             const saved = localStorage.getItem(localKey);
+             if (saved) {
+                 currentMonthData = JSON.parse(saved);
+             } else {
+                 createNewMonthData(); // This handles saving locally
+                 return;
+             }
+             updateUI();
+             updateMonthDisplay();
+             updateSyncButtonState();
         } else {
             syncStatus = 'error';
             updateSyncButtonState();
@@ -612,42 +649,7 @@ function updateProfilePage() {
 }
 
 function updateSyncButtonState() {
-    if (!elements.syncBtn) return;
-    
-    if (isOfflineMode) {
-        elements.syncBtn.innerHTML = ICONS.cloudOff;
-        elements.syncBtn.title = 'Modo Offline ativo';
-        elements.syncBtn.style.display = 'flex';
-        return;
-    }
-    
-    if (!isConfigured) {
-        elements.syncBtn.innerHTML = ICONS.cloudOff;
-        elements.syncBtn.title = 'App não configurado para sincronizar.';
-        elements.syncBtn.style.display = 'flex';
-        elements.syncBtn.classList.remove('syncing', 'unsynced', 'sync-error');
-        elements.syncBtn.disabled = true;
-        return;
-    }
-    
-    elements.syncBtn.style.display = 'flex';
-    elements.syncBtn.classList.remove('syncing', 'unsynced', 'sync-error');
-    elements.syncBtn.disabled = true; 
-
-    if (isSyncing || syncStatus === 'syncing') {
-        elements.syncBtn.innerHTML = ICONS.sync;
-        elements.syncBtn.title = 'Sincronizando...';
-        elements.syncBtn.classList.add('syncing');
-    } else if (syncStatus === 'error') {
-        elements.syncBtn.innerHTML = ICONS.info;
-        elements.syncBtn.title = 'Erro na sincronização.';
-        elements.syncBtn.classList.add('sync-error');
-    } else { 
-        elements.syncBtn.innerHTML = ICONS.cloudCheck;
-        const lastSync = localStorage.getItem('lastSync');
-        const lastSyncTime = lastSync ? new Date(lastSync).toLocaleTimeString('pt-BR') : 'agora';
-        elements.syncBtn.title = `Sincronizado. Última vez em: ${lastSyncTime}`;
-    }
+    // Sync button might be in header or sidebar now, handled by updateProfilePage and generic listeners
 }
 
 
@@ -669,9 +671,6 @@ function navigateTo(viewName) {
     elements.tabButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === viewName);
     });
-
-    const showMonthSelector = ['home', 'lancamentos', 'metas'].includes(viewName);
-    elements.monthSelector.style.display = showMonthSelector ? 'flex' : 'none';
 }
 
 // =================================================================================
@@ -680,7 +679,8 @@ function navigateTo(viewName) {
 function updateUI() {
     updateSummary();
     renderHeader(); // Update balance
-    elements.currentDateDisplay.textContent = getTodayFormatted();
+    if(elements.currentDateDisplay) elements.currentDateDisplay.textContent = getTodayFormatted();
+    if(elements.headerGreeting) elements.headerGreeting.textContent = `${getGreeting()}, Família Bispo Brito`;
     
     renderList('incomes', elements.incomesList, createIncomeItem, "Nenhuma entrada registrada", ICONS.income);
     renderList('expenses', elements.expensesList, createExpenseItem, "Nenhuma despesa registrada", ICONS.expense, true);
@@ -711,19 +711,8 @@ function renderHeader() {
         .reduce((sum, expense) => sum + expense.amount, 0);
 
     const nonMumbucaIncomes = allIncomes.filter(i => !i.description.toUpperCase().includes('MUMBUCA'));
-    const totalNonMumbucaIncome = nonMumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidNonMumbucaIncome = nonMumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-
-    const totalDebtsAndBills = allGeneralExpenses.reduce((sum, item) => sum + item.amount, 0) - totalTravelInvestmentAmount;
-    const paidDebtsAndBills = allGeneralExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0) - paidTravelInvestmentAmount;
     
-    const remainingDebtsAndBills = totalDebtsAndBills - paidDebtsAndBills;
-    const receivedAvailableIncome = paidNonMumbucaIncome - paidTravelInvestmentAmount; 
-    
-    // Estimate available balance: (Received Cash Income - TravelInvPaid) - (DebtsPaid) - (RemainingDebts to Pay)
-    // Actually, "Saldo Disponível" usually means what I have NOW.
-    // So: (Cash Received) - (Cash Spent).
-    
+    // Estimate available balance: (Cash Received) - (Cash Spent).
     const cashIncomesReceived = allIncomes
         .filter(i => i.paid && !i.description.toUpperCase().includes('MUMBUCA'))
         .reduce((sum, i) => sum + i.amount, 0);
@@ -734,17 +723,18 @@ function renderHeader() {
         
     const currentBalance = cashIncomesReceived - cashExpensesPaid;
 
-    if (showBalance) {
-        elements.headerBalanceValue.textContent = formatCurrency(currentBalance);
-        elements.toggleBalanceBtn.innerHTML = ICONS.eye;
-    } else {
-        elements.headerBalanceValue.textContent = "●●●●";
-        elements.toggleBalanceBtn.innerHTML = ICONS.eyeOff;
+    if (elements.headerBalanceValue) {
+        if (showBalance) {
+            elements.headerBalanceValue.textContent = formatCurrency(currentBalance);
+            if(elements.toggleBalanceBtn) elements.toggleBalanceBtn.innerHTML = ICONS.eye;
+        } else {
+            elements.headerBalanceValue.textContent = "●●●●";
+            if(elements.toggleBalanceBtn) elements.toggleBalanceBtn.innerHTML = ICONS.eyeOff;
+        }
     }
 }
 
 function updateSummary() {
-    // ... (Keep existing summary card logic for Dashboard View)
     // Shared calculations
     const allIncomes = currentMonthData.incomes || [];
     const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
@@ -764,34 +754,95 @@ function updateSummary() {
     const generalIncomeProgress = totalGeneralIncomeAmount > 0 ? (paidGeneralIncome / totalGeneralIncomeAmount) * 100 : 0;
     const remainingGeneralIncome = totalGeneralIncomeAmount - paidGeneralIncome;
     
-    elements.generalIncome.textContent = formatCurrency(totalGeneralIncomeAmount);
-    elements.generalIncomeProgressBar.style.width = `${Math.min(generalIncomeProgress, 100)}%`;
-    elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos / ${formatCurrency(remainingGeneralIncome)} a receber`;
+    if(elements.generalIncome) {
+        elements.generalIncome.textContent = formatCurrency(totalGeneralIncomeAmount);
+        elements.generalIncomeProgressBar.style.width = `${Math.min(generalIncomeProgress, 100)}%`;
+        elements.generalIncomeSubtitle.textContent = `${formatCurrency(paidGeneralIncome)} recebidos / ${formatCurrency(remainingGeneralIncome)} a receber`;
+    }
 
-    // Card 3: Salary Income
+    // Card: Salary Income (NOW FIRST)
     const salaryIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO'));
     const totalSalaryIncome = salaryIncomes.reduce((sum, item) => sum + item.amount, 0);
     const paidSalaryIncome = salaryIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
     const salaryIncomeProgress = totalSalaryIncome > 0 ? (paidSalaryIncome / totalSalaryIncome) * 100 : 0;
     const remainingSalaryIncome = totalSalaryIncome - paidSalaryIncome;
 
-    elements.salaryIncome.textContent = formatCurrency(totalSalaryIncome);
-    elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
-    elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos / ${formatCurrency(remainingSalaryIncome)} a receber`;
+    if(elements.salaryIncome) {
+        elements.salaryIncome.textContent = formatCurrency(totalSalaryIncome);
+        elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
+        elements.salaryIncomeSubtitle.textContent = `${formatCurrency(paidSalaryIncome)} recebidos / ${formatCurrency(remainingSalaryIncome)} a receber`;
+        
+        // Add color class to card container
+        if(elements.cardSalary) {
+             elements.cardSalary.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
+             elements.cardSalary.classList.add('card-bg-success'); // Slightly green
+        }
+    }
 
-    // Card: Available Income
-    const nonMumbucaIncomes = allIncomes.filter(i => !i.description.toUpperCase().includes('MUMBUCA'));
-    const totalNonMumbucaIncome = nonMumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidNonMumbucaIncome = nonMumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+    // Card: Available Income (Replaced/Renamed Concept to "Restante do Salário")
+    // Formula: Salary Income - (Fixed + Variable Expenses)
+    // Note: This is "planned" remainder.
+    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
+
+    const salaryRemainderTotal = totalSalaryIncome - totalFixedVariableExpenses;
     
-    const totalAvailableIncome = totalNonMumbucaIncome - totalTravelInvestmentAmount;
-    const receivedAvailableIncome = paidNonMumbucaIncome - paidTravelInvestmentAmount; 
-    const remainingAvailableToReceive = totalAvailableIncome - receivedAvailableIncome;
-    const availableIncomeProgress = totalAvailableIncome > 0 ? (receivedAvailableIncome / totalAvailableIncome) * 100 : 0;
+    // For progress bar: Maybe show how much of the salary is consumed?
+    // Or simpler: Just a bar representing availability. Let's stick to simple layout.
+    // If we want a progress bar for "Remainder", maybe 100% full if positive?
     
-    elements.availableIncome.textContent = formatCurrency(totalAvailableIncome);
-    elements.availableIncomeProgressBar.style.width = `${Math.min(availableIncomeProgress, 100)}%`;
-    elements.availableIncomeSubtitle.textContent = `${formatCurrency(receivedAvailableIncome)} disponíveis / ${formatCurrency(remainingAvailableToReceive)} a receber`;
+    if (elements.salaryRemainder) {
+        elements.salaryRemainder.textContent = formatCurrency(salaryRemainderTotal);
+        
+        // Progress Logic: Visual representation of remaining percentage of salary
+        const remainderPercentage = totalSalaryIncome > 0 ? (salaryRemainderTotal / totalSalaryIncome) * 100 : 0;
+        
+        elements.salaryRemainderProgressBar.style.width = `${Math.max(0, Math.min(remainderPercentage, 100))}%`;
+        
+        // Dynamic Thermometer Colors
+        let progressClass = '';
+        let cardBgClass = '';
+        
+        if (salaryRemainderTotal <= 0) {
+             progressClass = 'expense'; // Red
+             cardBgClass = 'card-bg-danger';
+        } else if (salaryRemainderTotal <= 100) {
+             progressClass = 'warning'; // Yellow (need CSS for this bar color if not exists, reusing warning logic)
+             cardBgClass = 'card-bg-warning';
+        } else if (salaryRemainderTotal <= 500) {
+             progressClass = 'info'; // Blue (need CSS)
+             cardBgClass = 'card-bg-info';
+        } else {
+             progressClass = 'income'; // Green
+             cardBgClass = 'card-bg-success';
+        }
+
+        // Apply bar colors manually if classes don't exist in CSS or reuse
+        elements.salaryRemainderProgressBar.className = 'summary-progress-bar-inner'; // Reset
+        
+        // Manually setting background color for specific cases if classes are limited
+        if (salaryRemainderTotal <= 0) elements.salaryRemainderProgressBar.style.backgroundColor = 'var(--danger)';
+        else if (salaryRemainderTotal <= 100) elements.salaryRemainderProgressBar.style.backgroundColor = 'var(--warning)';
+        else if (salaryRemainderTotal <= 500) elements.salaryRemainderProgressBar.style.backgroundColor = '#3b82f6'; // Blue
+        else elements.salaryRemainderProgressBar.style.backgroundColor = 'var(--success)';
+
+        // Apply text color
+        if (salaryRemainderTotal <= 0) {
+             elements.salaryRemainder.classList.add('expense-amount');
+             elements.salaryRemainder.classList.remove('income-amount');
+        } else {
+             elements.salaryRemainder.classList.add('income-amount');
+             elements.salaryRemainder.classList.remove('expense-amount');
+        }
+        
+        // Apply Card Background
+        if(elements.cardRemainder) {
+             elements.cardRemainder.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
+             elements.cardRemainder.classList.add(cardBgClass);
+        }
+        
+        elements.salaryRemainderSubtitle.textContent = `Salário - Despesas Fixas/Variáveis`;
+    }
 
     // Card 4: Mumbuca
     const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
@@ -804,11 +855,13 @@ function updateSummary() {
     const mumbucaProgress = totalMumbucaIncome > 0 ? (mumbucaSpending / totalMumbucaIncome) * 100 : 0;
     const mumbucaAvailable = totalMumbucaIncome - mumbucaSpending;
 
-    elements.mumbucaIncome.textContent = formatCurrency(totalMumbucaIncome);
-    elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaProgress, 100)}%`;
-    elements.mumbucaIncomeProgressBar.classList.remove('income');
-    elements.mumbucaIncomeProgressBar.classList.add('expense');
-    elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(mumbucaSpending)} gastos / ${formatCurrency(mumbucaAvailable)} disponíveis`;
+    if(elements.mumbucaIncome) {
+        elements.mumbucaIncome.textContent = formatCurrency(totalMumbucaIncome);
+        elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaProgress, 100)}%`;
+        elements.mumbucaIncomeProgressBar.classList.remove('income');
+        elements.mumbucaIncomeProgressBar.classList.add('expense');
+        elements.mumbucaIncomeSubtitle.textContent = `${formatCurrency(mumbucaSpending)} gastos / ${formatCurrency(mumbucaAvailable)} disponíveis`;
+    }
 
 
     // Card 5: General Expenses
@@ -817,54 +870,27 @@ function updateSummary() {
     const generalExpensesProgress = totalGeneralExpensesAmount > 0 ? (paidGeneralExpensesAmount / totalGeneralExpensesAmount) * 100 : 0;
     const remainingGeneralExpenses = totalGeneralExpensesAmount - paidGeneralExpensesAmount;
     
-    elements.generalExpenses.textContent = formatCurrency(totalGeneralExpensesAmount);
-    elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
-    elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
-
-    // Card 6: Debts & Bills
-    const totalDebtsAndBills = totalGeneralExpensesAmount - totalTravelInvestmentAmount;
-    const paidDebtsAndBills = paidGeneralExpensesAmount - paidTravelInvestmentAmount;
-    const debtsAndBillsProgress = totalDebtsAndBills > 0 ? (paidDebtsAndBills / totalDebtsAndBills) * 100 : 0;
-    const remainingDebtsAndBills = totalDebtsAndBills - paidDebtsAndBills;
-
-    elements.debtsAndBills.textContent = formatCurrency(totalDebtsAndBills);
-    elements.debtsAndBillsProgressBar.style.width = `${Math.min(debtsAndBillsProgress, 100)}%`;
-    elements.debtsAndBillsSubtitle.textContent = `${formatCurrency(paidDebtsAndBills)} pagos / ${formatCurrency(remainingDebtsAndBills)} a pagar`;
-
-    // Card 7: Estimativa de Saldo (Avulsos Budget)
-    const spentOnAvulsos = (currentMonthData.avulsosItems || [])
-        .filter(item => item.paid)
-        .reduce((sum, item) => sum + item.amount, 0);
-    
-    // Total Income (Cash) - Planned Expenses (Cash)
-    const totalCashIncome = totalSalaryIncome; // Assuming only salary for now
-    const totalPlannedCashExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
-    
-    const avulsosBudgetAmount = totalCashIncome - totalPlannedCashExpenses;
-    const avulsosBudgetProgress = avulsosBudgetAmount > 0 ? (spentOnAvulsos / avulsosBudgetAmount) * 100 : (spentOnAvulsos > 0 ? 100 : 0);
-    const remainingAvulsosBudget = avulsosBudgetAmount - spentOnAvulsos;
-
-    elements.avulsosBudget.textContent = formatCurrency(avulsosBudgetAmount);
-    elements.avulsosBudgetProgressBar.style.width = `${Math.min(avulsosBudgetProgress, 100)}%`;
-    elements.avulsosBudgetSubtitle.textContent = `${formatCurrency(spentOnAvulsos)} gastos / ${formatCurrency(remainingAvulsosBudget)} disponíveis`;
-    
-    if (avulsosBudgetAmount < 0 || remainingAvulsosBudget < 0) {
-        elements.avulsosBudget.classList.add('balance-negative');
-        elements.avulsosBudget.classList.remove('balance-positive');
-    } else {
-        elements.avulsosBudget.classList.add('balance-positive');
-        elements.avulsosBudget.classList.remove('balance-negative');
+    if(elements.generalExpenses) {
+        elements.generalExpenses.textContent = formatCurrency(totalGeneralExpensesAmount);
+        elements.generalExpensesProgressBar.style.width = `${Math.min(generalExpensesProgress, 100)}%`;
+        elements.generalExpensesSubtitle.textContent = `${formatCurrency(paidGeneralExpensesAmount)} pagos / ${formatCurrency(remainingGeneralExpenses)} a pagar`;
     }
-    
-    // Card 8: Fixed & Variable
-    const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
+
+    // Card 8: Fixed & Variable (NOW SECOND)
     const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
     const remainingFixedVariableExpenses = totalFixedVariableExpenses - paidFixedVariableExpenses;
     
-    elements.fixedVariableExpenses.textContent = formatCurrency(totalFixedVariableExpenses);
-    elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
-    elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos / ${formatCurrency(remainingFixedVariableExpenses)} a pagar`;
+    if(elements.fixedVariableExpenses) {
+        elements.fixedVariableExpenses.textContent = formatCurrency(totalFixedVariableExpenses);
+        elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
+        elements.fixedVariableExpensesSubtitle.textContent = `${formatCurrency(paidFixedVariableExpenses)} pagos / ${formatCurrency(remainingFixedVariableExpenses)} a pagar`;
+        
+        // Add color class to card container
+        if(elements.cardExpenses) {
+             elements.cardExpenses.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
+             elements.cardExpenses.classList.add('card-bg-danger'); // Slightly red
+        }
+    }
 
     // Marcia Brito Debt Summary
     const marciaBritoDebt = allGeneralExpenses
@@ -1832,13 +1858,24 @@ async function handleAiChatSubmit(e) {
 // INITIALIZATION
 // =================================================================================
 function init() {
+    // Force current date on init based on SYSTEM CLOCK
+    const now = new Date();
+    currentMonth = now.getMonth() + 1;
+    currentYear = now.getFullYear();
+
+    // Immediate visual update
+    updateMonthDisplay();
+    
     // Event listeners
     document.querySelector('.prev-month').addEventListener('click', () => changeMonth(-1));
     document.querySelector('.next-month').addEventListener('click', () => changeMonth(1));
-    elements.toggleBalanceBtn.addEventListener('click', () => {
-        showBalance = !showBalance;
-        renderHeader();
-    });
+    
+    if(elements.toggleBalanceBtn) {
+        elements.toggleBalanceBtn.addEventListener('click', () => {
+            showBalance = !showBalance;
+            renderHeader();
+        });
+    }
     
     elements.menuBtn.addEventListener('click', openSidebar);
     elements.closeSidebarBtn.addEventListener('click', closeSidebar);
@@ -1857,6 +1894,8 @@ function init() {
             });
         });
     });
+    
+    document.getElementById('open-ai-btn-header')?.addEventListener('click', openAiModal);
 
     document.getElementById('add-income-btn')?.addEventListener('click', () => openAddModal('incomes'));
     document.getElementById('add-expense-btn')?.addEventListener('click', () => openAddModal('expenses'));
@@ -1871,7 +1910,7 @@ function init() {
         btn.addEventListener('click', closeModal);
     });
 
-    document.getElementById('open-ai-btn').addEventListener('click', openAiModal);
+    document.getElementById('open-ai-btn')?.addEventListener('click', openAiModal);
     
     elements.addForm.addEventListener('submit', handleAddFormSubmit);
     elements.editForm.addEventListener('submit', handleEditFormSubmit);
@@ -1887,11 +1926,15 @@ function init() {
         deleteItem(itemId, itemType);
     });
 
-    elements.syncBtn.addEventListener('click', () => {
-        if (!isSyncing && isConfigured) {
-            saveDataToFirestore();
-        }
-    });
+    // Handle sync button (might be in sidebar now)
+    const syncBtn = document.getElementById('sync-btn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', () => {
+            if (!isSyncing && isConfigured) {
+                saveDataToFirestore();
+            }
+        });
+    }
     
     populateCategorySelects();
     populateAccountSelects();
