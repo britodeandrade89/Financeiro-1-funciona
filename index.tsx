@@ -4,10 +4,6 @@ import { db, auth, isConfigured, firebaseConfig } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
-
-// ... (keep existing imports and constants up to updateSummary function)
-// ICONS, SPENDING_CATEGORIES, PAYMENT_SCHEDULE_2025, initialMonthData, STATE, DOM ELEMENTS, UTILS 
-
 // =================================================================================
 // ICONS & CATEGORIES
 // =================================================================================
@@ -152,6 +148,14 @@ const elements = {
     mumbucaBalance: document.getElementById('mumbucaBalance'),
     mumbucaBalanceProgressBar: document.getElementById('mumbucaBalanceProgressBar'),
 
+    // Cards - Section 3 (General)
+    generalTotalIncome: document.getElementById('generalTotalIncome'),
+    generalTotalExpenses: document.getElementById('generalTotalExpenses'),
+
+    // Cards - Marcia Brito
+    marciaTotalDisplay: document.getElementById('marciaTotalDisplay'),
+    marciaTotalBill: document.getElementById('marciaTotalBill'),
+
     // Other
     debtSummaryContainer: document.getElementById('debtSummaryContainer'),
     
@@ -203,7 +207,6 @@ const elements = {
     aiModalTitle: document.getElementById('aiModalTitle'),
     aiChatForm: document.getElementById('aiChatForm'),
     aiChatInput: document.getElementById('aiChatInput'),
-    generateSavingsSuggestionBtn: document.getElementById('generateSavingsSuggestionBtn'),
     goalModalTitle: document.getElementById('goalModalTitle'),
     goalForm: document.getElementById('goalForm'),
     goalId: document.getElementById('goalId'),
@@ -228,7 +231,6 @@ const elements = {
     syncBtn: document.getElementById('sync-btn'),
 };
 
-// ... (Keep UTILS: formatCurrency, parseCurrency, getMonthName, formatDate, getTodayFormatted, getGreeting, simpleMarkdownToHtml, populateCategorySelects, populateAccountSelects)
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
@@ -307,7 +309,57 @@ function populateAccountSelects() {
     });
 }
 
-// ... (Keep DATA HANDLING: saveDataToFirestore, saveData, loadDataForCurrentMonth, createNewMonthData, changeMonth - no changes needed for this UI update)
+function updateSyncButtonState() {
+    const syncBtn = document.getElementById('sync-btn');
+    const statusText = document.getElementById('sync-status-text');
+    const statusInfo = document.getElementById('sync-status-info');
+    const userIdContainer = document.getElementById('user-id-container');
+    const userIdText = document.getElementById('user-id-text');
+    
+    if (!syncBtn) return;
+
+    if (currentUser) {
+        userIdContainer.style.display = 'block';
+        userIdText.textContent = currentUser.uid.substring(0,8) + '...';
+    } else {
+        userIdContainer.style.display = 'none';
+    }
+    
+    if (syncStatus === 'syncing') {
+        syncBtn.textContent = 'Sincronizando...';
+        syncBtn.disabled = true;
+        statusText.textContent = 'Sincronizando...';
+        statusText.style.color = 'var(--warning)';
+    } else if (syncStatus === 'synced') {
+        syncBtn.textContent = 'Sincronizar Agora';
+        syncBtn.disabled = false;
+        statusText.textContent = 'Sincronizado';
+        statusText.style.color = 'var(--success)';
+        statusInfo.textContent = 'Última sincronização: ' + new Date().toLocaleTimeString();
+    } else if (syncStatus === 'error') {
+        syncBtn.textContent = 'Tentar Novamente';
+        syncBtn.disabled = false;
+        statusText.textContent = 'Erro';
+        statusText.style.color = 'var(--danger)';
+        statusInfo.textContent = syncErrorDetails || 'Falha na conexão.';
+    } else {
+        syncBtn.textContent = 'Conectar/Sincronizar';
+        syncBtn.disabled = false;
+        statusText.textContent = 'Desconectado (Local)';
+        statusText.style.color = 'var(--text-light)';
+        statusInfo.textContent = isOfflineMode ? 'Modo Offline Ativo' : 'Aguardando conexão...';
+    }
+}
+
+function updateLastSyncTime(success) {
+    const statusInfo = document.getElementById('sync-status-info');
+    if (statusInfo) {
+        if (success) {
+            statusInfo.textContent = 'Salvo na nuvem: ' + new Date().toLocaleTimeString();
+        } 
+    }
+}
+
 async function saveDataToFirestore() {
     if (isOfflineMode) {
         const monthKey = `financeData_${currentYear}_${currentMonth}`;
@@ -441,17 +493,14 @@ async function createNewMonthData() {
         }
     });
 
-    // === RESTORE DEFAULT EXPENSES IF LIST IS EMPTY (FOR NEW DB) ===
     if (newMonthData.expenses.length === 0) {
         const defaultExpenses = [
-            { description: 'Aluguel / Prestação Casa', category: 'moradia', type: 'fixed', day: 10, amount: 0 },
+            { description: 'Repasse Márcia Brito', category: 'dividas', type: 'fixed', day: 10, amount: 0 },
             { description: 'Conta de Luz', category: 'moradia', type: 'variable', day: 10, amount: 0 },
             { description: 'Conta de Água', category: 'moradia', type: 'variable', day: 10, amount: 0 },
-            { description: 'Internet / TV', category: 'moradia', type: 'fixed', day: 15, amount: 0 },
-            { description: 'Gás de Cozinha', category: 'moradia', type: 'variable', day: 20, amount: 0 },
+            { description: 'Internet', category: 'moradia', type: 'fixed', day: 15, amount: 0 },
             { description: 'Mercado Mensal', category: 'alimentacao', type: 'variable', day: 5, amount: 0 },
-            { description: 'Fatura Cartão de Crédito', category: 'outros', type: 'variable', day: 10, amount: 0 },
-            { description: 'Plano de Celular', category: 'moradia', type: 'fixed', day: 10, amount: 0 }
+            { description: 'Cartão de Crédito', category: 'outros', type: 'variable', day: 10, amount: 0 }
         ];
 
         defaultExpenses.forEach(def => {
@@ -476,713 +525,450 @@ async function createNewMonthData() {
 }
 
 function changeMonth(offset) {
-    currentMonth += offset;
-    if (currentMonth > 12) { currentMonth = 1; currentYear++; } else if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+    let newMonth = currentMonth + offset;
+    let newYear = currentYear;
+
+    if (newMonth > 12) {
+        newMonth = 1;
+        newYear++;
+    } else if (newMonth < 1) {
+        newMonth = 12;
+        newYear--;
+    }
+
+    currentMonth = newMonth;
+    currentYear = newYear;
     loadDataForCurrentMonth();
 }
 
-// ... (Keep SIDEBAR logic, SYNC UI logic, NAVIGATION logic)
-function openSidebar() { updateProfilePage(); elements.sidebar.classList.add('active'); elements.sidebarOverlay.classList.add('active'); }
-function closeSidebar() { elements.sidebar.classList.remove('active'); elements.sidebarOverlay.classList.remove('active'); }
-function updateProfilePage() {
-    const syncStatusText = document.getElementById('sync-status-text');
-    const userIdText = document.getElementById('user-id-text');
-    const userIdContainer = document.getElementById('user-id-container');
-    const syncStatusInfo = document.getElementById('sync-status-info');
-    if (currentUser) { userIdText.textContent = currentUser.uid; userIdContainer.style.display = 'block'; } else { userIdContainer.style.display = 'none'; }
-    if (isOfflineMode) { syncStatusText.textContent = 'Modo Offline (Local)'; syncStatusText.style.color = 'var(--warning)'; if (syncStatusInfo) syncStatusInfo.innerHTML = 'Permissão negada ou erro de conexão. Os dados estão sendo salvos apenas neste dispositivo.'; return; }
-    if (!isConfigured) { syncStatusText.textContent = 'Nuvem Não Configurada'; syncStatusText.style.color = 'var(--text-light)'; return; }
-    if (syncStatus === 'synced') { syncStatusText.textContent = 'Conectado e Sincronizado'; syncStatusText.style.color = 'var(--success)'; if (syncStatusInfo) syncStatusInfo.innerHTML = 'Seus dados são salvos automaticamente na nuvem.'; } 
-    else if (syncStatus === 'syncing') { syncStatusText.textContent = 'Sincronizando...'; syncStatusText.style.color = 'var(--warning)'; } 
-    else if (syncStatus === 'error') { syncStatusText.textContent = 'Erro de Sincronização'; syncStatusText.style.color = 'var(--danger)'; } 
-    else { syncStatusText.textContent = 'Desconectado'; syncStatusText.style.color = 'var(--text-light)'; }
-}
-function updateSyncButtonState() {}
-function updateLastSyncTime(isSuccess) { if (isSuccess) localStorage.setItem('lastSync', new Date().toISOString()); }
-function navigateTo(viewName) {
-    elements.appViews.forEach(view => { view.classList.toggle('active', view.id === `view-${viewName}`); });
-    elements.tabButtons.forEach(btn => { btn.classList.toggle('active', btn.dataset.view === viewName); });
-}
-
-// =================================================================================
-// UI RENDERING - UPDATED
-// =================================================================================
-function updateUI() {
-    updateSummary();
-    renderHeader(); 
-    if(elements.currentDateDisplay) elements.currentDateDisplay.textContent = getTodayFormatted();
-    if(elements.headerGreeting) elements.headerGreeting.textContent = `${getGreeting()}, Família Bispo Brito`;
-    
-    renderList('incomes', elements.incomesList, createIncomeItem, "Nenhuma entrada registrada", ICONS.income);
-    renderList('expenses', elements.expensesList, createExpenseItem, "Nenhuma despesa registrada", ICONS.expense, true);
-    
-    const allSpendings = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const comprasMumbucaItems = allSpendings.filter(item => item.category === 'shopping');
-    const abastecimentoMumbucaItems = allSpendings.filter(item => item.category === 'abastecimento_mumbuca');
-    
-    renderFilteredList(elements.comprasMumbucaList, comprasMumbucaItems, createShoppingItem, "Nenhuma compra registrada", ICONS.shopping);
-    renderFilteredList(elements.abastecimentoMumbucaList, abastecimentoMumbucaItems, createShoppingItem, "Nenhum abastecimento registrado", SPENDING_CATEGORIES.abastecimento_mumbuca.icon);
-
-    renderList('avulsosItems', elements.avulsosList, createShoppingItem, "Nenhuma despesa avulsa registrada", ICONS.variable);
-    renderGoalsPage();
-    renderBankAccounts();
-    renderOverviewChart();
-    renderMonthlyAnalysis();
-}
-
-function renderHeader() {
-    const allIncomes = currentMonthData.incomes || [];
-    const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    
-    // Estimate available balance
-    const cashIncomesReceived = allIncomes
-        .filter(i => i.paid && !i.description.toUpperCase().includes('MUMBUCA'))
-        .reduce((sum, i) => sum + i.amount, 0);
-        
-    const cashExpensesPaid = allGeneralExpenses
-        .filter(e => e.paid && e.category !== 'shopping' && e.category !== 'abastecimento_mumbuca')
-        .reduce((sum, e) => sum + e.amount, 0);
-        
-    const currentBalance = cashIncomesReceived - cashExpensesPaid;
-
-    if (elements.headerBalanceValue) {
-        if (showBalance) {
-            elements.headerBalanceValue.textContent = formatCurrency(currentBalance);
-            if(elements.toggleBalanceBtn) elements.toggleBalanceBtn.innerHTML = ICONS.eye;
-        } else {
-            elements.headerBalanceValue.textContent = "●●●●";
-            if(elements.toggleBalanceBtn) elements.toggleBalanceBtn.innerHTML = ICONS.eyeOff;
-        }
+function updateMonthDisplay() {
+    elements.monthDisplay.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
+    const now = new Date();
+    if (currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear()) {
+         elements.currentDateDisplay.textContent = getTodayFormatted();
+         elements.headerGreeting.textContent = `${getGreeting()}, Família Bispo Brito`;
+    } else {
+         elements.currentDateDisplay.textContent = `Visualizando ${getMonthName(currentMonth)}`;
+         elements.headerGreeting.textContent = "Resumo Mensal";
     }
 }
 
 function updateSummary() {
-    const allIncomes = currentMonthData.incomes || [];
-    const allGeneralExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const fixedVariableExpenses = currentMonthData.expenses || [];
-
-    // ===================================
-    // SECTION 1: Salary & General Logic
-    // ===================================
-
-    // Card 1: Salary Income
-    const salaryIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('SALARIO'));
-    const totalSalaryIncome = salaryIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidSalaryIncome = salaryIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const salaryIncomeProgress = totalSalaryIncome > 0 ? (paidSalaryIncome / totalSalaryIncome) * 100 : 0;
-    const remainingSalaryIncome = totalSalaryIncome - paidSalaryIncome;
-
-    // NOTE: In the new HTML structure, salaryIncome ID is the main amount (previously 'Paid')
-    // salaryTotalValue is now in the stat box.
-    if(elements.salaryIncome) {
-        if(elements.salaryTotalValue) elements.salaryTotalValue.textContent = formatCurrency(totalSalaryIncome);
-        elements.salaryIncome.textContent = formatCurrency(paidSalaryIncome);
-        
-        elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
-        if(elements.salaryPendingValue) elements.salaryPendingValue.textContent = formatCurrency(remainingSalaryIncome);
-        
-        if(elements.cardSalary) {
-             elements.cardSalary.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardSalary.classList.add('card-bg-success'); 
-        }
-    }
-
-    // Card 2: Fixed & Variable Expenses
-    const totalFixedVariableExpenses = fixedVariableExpenses.reduce((sum, item) => sum + item.amount, 0);
-    const paidFixedVariableExpenses = fixedVariableExpenses.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
-    const remainingFixedVariableExpenses = totalFixedVariableExpenses - paidFixedVariableExpenses;
+    if (!currentMonthData) return;
     
-    // NOTE: In new HTML structure, fixedVariableExpenses is the main amount (Paid)
-    // expensesTotalValue is now in the stat box.
-    if(elements.fixedVariableExpenses) {
-        if(elements.expensesTotalValue) elements.expensesTotalValue.textContent = formatCurrency(totalFixedVariableExpenses);
-        elements.fixedVariableExpenses.textContent = formatCurrency(paidFixedVariableExpenses);
+    // --- 1. SALÁRIOS (Dinheiro) ---
+    const cashIncomes = currentMonthData.incomes.filter(i => !i.description.toLowerCase().includes('mumbuca'));
+    const cashIncomesTotal = cashIncomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const cashIncomesReceived = cashIncomes.filter(i => i.paid).reduce((acc, curr) => acc + curr.amount, 0);
+    const cashIncomesPending = cashIncomesTotal - cashIncomesReceived;
 
-        elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
-        if(elements.expensesPendingValue) elements.expensesPendingValue.textContent = formatCurrency(remainingFixedVariableExpenses);
+    if (elements.salaryTotalDisplay) elements.salaryTotalDisplay.textContent = formatCurrency(cashIncomesTotal).replace('R$', '').trim();
+    if (elements.salaryIncome) elements.salaryIncome.textContent = formatCurrency(cashIncomesReceived);
+    if (elements.salaryPendingValue) elements.salaryPendingValue.textContent = formatCurrency(cashIncomesPending);
+    if (elements.salaryIncomeProgressBar) elements.salaryIncomeProgressBar.style.width = cashIncomesTotal > 0 ? `${(cashIncomesReceived / cashIncomesTotal) * 100}%` : '0%';
 
-        if(elements.cardExpenses) {
-             elements.cardExpenses.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardExpenses.classList.add('card-bg-danger'); 
-        }
-    }
-
-    // Card 3: Restante do Salário (Balance)
-    const salaryRemainderTotal = totalSalaryIncome - totalFixedVariableExpenses;
-    const remainderPercentage = totalSalaryIncome > 0 ? (salaryRemainderTotal / totalSalaryIncome) * 100 : 0;
+    // --- 2. DESPESAS GERAIS (Dinheiro) ---
+    // Exclui gastos mumbuca explicitamente para não duplicar
+    const cashExpenses = currentMonthData.expenses.filter(e => true); // Todos aqui são dinheiro, mumbuca é separado em "shoppingItems/avulsos"
     
-    if (elements.salaryRemainder) {
-        elements.salaryRemainder.textContent = formatCurrency(salaryRemainderTotal);
-        elements.salaryRemainderProgressBar.style.width = `${Math.max(0, Math.min(remainderPercentage, 100))}%`;
-        
-        let cardBgClass = '';
-        let barColor = '';
-        let textColorClass = '';
+    // Calcula totals
+    const cashExpensesTotal = cashExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const cashExpensesPaid = cashExpenses.filter(e => e.paid).reduce((acc, curr) => acc + curr.amount, 0);
+    const cashExpensesPending = cashExpensesTotal - cashExpensesPaid;
 
-        if (salaryRemainderTotal <= 0) {
-             barColor = 'var(--danger)';
-             cardBgClass = 'card-bg-danger';
-             textColorClass = 'expense-amount';
-        } else if (salaryRemainderTotal <= 100) {
-             barColor = 'var(--warning)';
-             cardBgClass = 'card-bg-warning';
-             textColorClass = 'text-warning';
-        } else if (salaryRemainderTotal <= 500) {
-             barColor = '#3b82f6';
-             cardBgClass = 'card-bg-info';
-             textColorClass = 'income-amount'; 
-        } else {
-             barColor = 'var(--success)';
-             cardBgClass = 'card-bg-success';
-             textColorClass = 'income-amount';
-        }
+    if (elements.expensesTotalDisplay) elements.expensesTotalDisplay.textContent = formatCurrency(cashExpensesTotal).replace('R$', '').trim();
+    if (elements.fixedVariableExpenses) elements.fixedVariableExpenses.textContent = formatCurrency(cashExpensesPaid);
+    if (elements.expensesPendingValue) elements.expensesPendingValue.textContent = formatCurrency(cashExpensesPending);
+    if (elements.fixedVariableExpensesProgressBar) elements.fixedVariableExpensesProgressBar.style.width = cashExpensesTotal > 0 ? `${(cashExpensesPaid / cashExpensesTotal) * 100}%` : '0%';
 
-        elements.salaryRemainderProgressBar.style.backgroundColor = barColor;
-        elements.salaryRemainder.className = `main-amount ${textColorClass}`;
-        
-        if(elements.cardRemainder) {
-             elements.cardRemainder.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardRemainder.classList.add(cardBgClass);
-        }
+    // --- 3. BALANÇO SALÁRIO (Dinheiro) ---
+    const salaryRemainder = cashIncomesReceived - cashExpensesPaid;
+    if (elements.salaryRemainder) elements.salaryRemainder.textContent = formatCurrency(salaryRemainder).replace('R$', '').trim();
+    if (elements.salaryRemainderProgressBar) {
+        elements.salaryRemainderProgressBar.style.width = '100%';
+        elements.salaryRemainderProgressBar.className = `summary-progress-bar-inner ${salaryRemainder >= 0 ? 'safe' : 'danger'}`;
     }
 
-    // ===================================
-    // SECTION 2: MUMBUCA SECTION
-    // ===================================
+    // --- 4. MUMBUCA (Entradas) ---
+    const mumbucaIncomes = currentMonthData.incomes.filter(i => i.description.toLowerCase().includes('mumbuca'));
+    const mumbucaTotal = mumbucaIncomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const mumbucaReceived = mumbucaIncomes.filter(i => i.paid).reduce((acc, curr) => acc + curr.amount, 0);
+    const mumbucaPending = mumbucaTotal - mumbucaReceived;
 
-    // Card 4: Entrada Mumbuca (Green)
-    const mumbucaIncomes = allIncomes.filter(i => i.description.toUpperCase().includes('MUMBUCA'));
-    const totalMumbucaIncome = mumbucaIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const paidMumbucaIncome = mumbucaIncomes.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const mumbucaIncomeProgress = totalMumbucaIncome > 0 ? (paidMumbucaIncome / totalMumbucaIncome) * 100 : 0;
-    const remainingMumbucaIncome = totalMumbucaIncome - paidMumbucaIncome;
+    if (elements.mumbucaTotalDisplay) elements.mumbucaTotalDisplay.textContent = formatCurrency(mumbucaTotal).replace('R$', '').trim();
+    if (elements.mumbucaIncome) elements.mumbucaIncome.textContent = formatCurrency(mumbucaReceived);
+    if (elements.mumbucaPendingValue) elements.mumbucaPendingValue.textContent = formatCurrency(mumbucaPending);
+    if (elements.mumbucaIncomeProgressBar) elements.mumbucaIncomeProgressBar.style.width = mumbucaTotal > 0 ? `${(mumbucaReceived / mumbucaTotal) * 100}%` : '0%';
 
-    if(elements.mumbucaIncome) {
-        if(elements.mumbucaTotalValue) elements.mumbucaTotalValue.textContent = formatCurrency(totalMumbucaIncome);
-        elements.mumbucaIncome.textContent = formatCurrency(paidMumbucaIncome);
-
-        elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
-        if(elements.mumbucaPendingValue) elements.mumbucaPendingValue.textContent = formatCurrency(remainingMumbucaIncome);
-        
-        if(elements.cardMumbucaIncome) {
-             elements.cardMumbucaIncome.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardMumbucaIncome.classList.add('card-bg-success'); 
-        }
-    }
-
-    // Card 5: Gastos com Mumbuca (Red)
-    const mumbucaExpensesList = allGeneralExpenses.filter(item => item.category === 'shopping' || item.category === 'abastecimento_mumbuca');
-    const totalMumbucaExpenses = mumbucaExpensesList.reduce((sum, item) => sum + item.amount, 0);
-    const paidMumbucaExpenses = mumbucaExpensesList.filter(item => item.paid).reduce((sum, item) => sum + item.amount, 0);
-    const mumbucaExpensesProgress = totalMumbucaExpenses > 0 ? (paidMumbucaExpenses / totalMumbucaExpenses) * 100 : 0;
-    const remainingMumbucaExpenses = totalMumbucaExpenses - paidMumbucaExpenses;
-
-    if(elements.mumbucaExpenses) {
-        if(elements.mumbucaExpensesTotalValue) elements.mumbucaExpensesTotalValue.textContent = formatCurrency(totalMumbucaExpenses);
-        elements.mumbucaExpenses.textContent = formatCurrency(paidMumbucaExpenses);
-
-        elements.mumbucaExpensesProgressBar.style.width = `${Math.min(mumbucaExpensesProgress, 100)}%`;
-        if(elements.mumbucaExpensesPendingValue) elements.mumbucaExpensesPendingValue.textContent = formatCurrency(remainingMumbucaExpenses);
-
-        if(elements.cardMumbucaExpenses) {
-             elements.cardMumbucaExpenses.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardMumbucaExpenses.classList.add('card-bg-danger'); 
-        }
-    }
-
-    // Card 6: Saldo Mumbuca (Dynamic Termometer)
-    const mumbucaBalanceTotal = totalMumbucaIncome - totalMumbucaExpenses;
-    const mumbucaBalanceProgress = totalMumbucaIncome > 0 ? (mumbucaBalanceTotal / totalMumbucaIncome) * 100 : 0;
-
-    if (elements.mumbucaBalance) {
-        elements.mumbucaBalance.textContent = formatCurrency(mumbucaBalanceTotal);
-        elements.mumbucaBalanceProgressBar.style.width = `${Math.max(0, Math.min(mumbucaBalanceProgress, 100))}%`;
-
-        let cardBgClass = '';
-        let barColor = '';
-        let textColorClass = '';
-
-        if (mumbucaBalanceTotal <= 0) {
-             barColor = 'var(--danger)';
-             cardBgClass = 'card-bg-danger';
-             textColorClass = 'expense-amount';
-        } else if (mumbucaBalanceTotal <= 100) {
-             barColor = 'var(--warning)';
-             cardBgClass = 'card-bg-warning';
-             textColorClass = 'text-warning';
-        } else if (mumbucaBalanceTotal <= 500) {
-             barColor = '#3b82f6';
-             cardBgClass = 'card-bg-info';
-             textColorClass = 'income-amount'; 
-        } else {
-             barColor = 'var(--success)';
-             cardBgClass = 'card-bg-success';
-             textColorClass = 'income-amount';
-        }
-
-        elements.mumbucaBalanceProgressBar.style.backgroundColor = barColor;
-        elements.mumbucaBalance.className = `main-amount ${textColorClass}`;
-        
-        if(elements.cardMumbucaBalance) {
-             elements.cardMumbucaBalance.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
-             elements.cardMumbucaBalance.classList.add(cardBgClass);
-        }
-    }
-
-    // Update General Summary Cards
-    const generalTotalIncome = allIncomes
-        .filter(i => i.paid && !i.description.toUpperCase().includes('MUMBUCA'))
-        .reduce((sum, i) => sum + i.amount, 0);
-
-    const generalTotalExpenses = allGeneralExpenses
-        .filter(e => e.paid && e.category !== 'shopping' && e.category !== 'abastecimento_mumbuca')
-        .reduce((sum, e) => sum + e.amount, 0);
+    // --- 5. MUMBUCA (Gastos - Compras + Abastecimento) ---
+    const mumbucaShopping = currentMonthData.shoppingItems || [];
+    const mumbucaAvulsos = currentMonthData.avulsosItems ? currentMonthData.avulsosItems.filter(i => i.description.toLowerCase().includes('mumbuca') || i.category === 'abastecimento_mumbuca') : [];
     
-    if(document.getElementById('generalTotalIncome')) {
-        document.getElementById('generalTotalIncome').textContent = formatCurrency(generalTotalIncome);
-    }
-    if(document.getElementById('generalTotalExpenses')) {
-        document.getElementById('generalTotalExpenses').textContent = formatCurrency(generalTotalExpenses);
+    // Nota: "Abastecimento" está separado na UI, mas aqui somamos tudo como "Saída Mumbuca"
+    // Vamos considerar "shoppingItems" (Compras) e "avulsos" (Abastecimento)
+    // No código original, "shoppingItems" é "Compras Mumbuca". "avulsosItems" é Avulsos.
+    // Vamos somar os dois arrays.
+    
+    const allMumbucaExpenses = [...mumbucaShopping];
+    const mumbucaExpensesTotal = allMumbucaExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const mumbucaExpensesPaid = allMumbucaExpenses.filter(e => e.paid).reduce((acc, curr) => acc + curr.amount, 0);
+    const mumbucaExpensesPending = mumbucaExpensesTotal - mumbucaExpensesPaid;
+
+    if (elements.mumbucaExpensesTotalDisplay) elements.mumbucaExpensesTotalDisplay.textContent = formatCurrency(mumbucaExpensesTotal).replace('R$', '').trim();
+    if (elements.mumbucaExpenses) elements.mumbucaExpenses.textContent = formatCurrency(mumbucaExpensesPaid);
+    if (elements.mumbucaExpensesPendingValue) elements.mumbucaExpensesPendingValue.textContent = formatCurrency(mumbucaExpensesPending);
+    if (elements.mumbucaExpensesProgressBar) elements.mumbucaExpensesProgressBar.style.width = mumbucaExpensesTotal > 0 ? `${(mumbucaExpensesPaid / mumbucaExpensesTotal) * 100}%` : '0%';
+
+    // --- 6. BALANÇO MUMBUCA ---
+    const mumbucaBalance = mumbucaReceived - mumbucaExpensesPaid;
+    if (elements.mumbucaBalance) elements.mumbucaBalance.textContent = formatCurrency(mumbucaBalance).replace('R$', '').trim();
+    if (elements.mumbucaBalanceProgressBar) {
+         elements.mumbucaBalanceProgressBar.style.width = '100%';
+         elements.mumbucaBalanceProgressBar.className = `summary-progress-bar-inner ${mumbucaBalance >= 0 ? 'safe' : 'danger'}`;
     }
 
-    // ===================================
-    // SECTION 4: MARCIA BRITO SUMMARY
-    // ===================================
-    const marciaExpenses = allGeneralExpenses.filter(e => 
-        e.description.toUpperCase().includes('MARCIA') || 
-        e.description.toUpperCase().includes('MÁRCIA')
-    );
-    const totalMarcia = marciaExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const pendingMarcia = marciaExpenses.filter(e => !e.paid).reduce((sum, e) => sum + e.amount, 0);
-
-    if (document.getElementById('marciaTotalDisplay')) {
-        document.getElementById('marciaTotalDisplay').textContent = formatCurrency(pendingMarcia);
+    // --- 7. HEADER BALANCE (Saldo Global Disponível - Mumbuca + Dinheiro) ---
+    const totalBalance = salaryRemainder + mumbucaBalance;
+    if (elements.headerBalanceValue) {
+        elements.headerBalanceValue.textContent = showBalance ? formatCurrency(totalBalance) : 'R$ ••••';
     }
-    if (document.getElementById('marciaTotalBill')) {
-        document.getElementById('marciaTotalBill').textContent = formatCurrency(totalMarcia);
+    
+    // --- 8. REPASSE MÁRCIA BRITO ---
+    const marciaExpenses = currentMonthData.expenses.filter(e => {
+        const desc = e.description ? e.description.toLowerCase() : '';
+        return desc.includes('marcia') || desc.includes('márcia');
+    });
+    
+    const marciaTotal = marciaExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const marciaPaid = marciaExpenses.filter(e => e.paid).reduce((acc, curr) => acc + curr.amount, 0);
+    const marciaPending = marciaTotal - marciaPaid;
+
+    if (elements.marciaTotalDisplay) elements.marciaTotalDisplay.textContent = formatCurrency(marciaPending).replace('R$', '').trim();
+    if (elements.marciaTotalBill) elements.marciaTotalBill.textContent = formatCurrency(marciaTotal);
+
+    // --- 9. RESUMO GERAL ---
+    // Total Entradas (Salário + Mumbuca + Avulsos de Entrada se houver)
+    const totalGeneralIncome = cashIncomesTotal + mumbucaTotal; // Simplificado
+    
+    // Total Saídas (Despesas Dinheiro + Gastos Mumbuca + Avulsos Saída)
+    const avulsosExpenses = currentMonthData.avulsosItems || [];
+    const avulsosTotal = avulsosExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    
+    const totalGeneralExpenses = cashExpensesTotal + mumbucaExpensesTotal + avulsosTotal;
+
+    if (elements.generalTotalIncome) elements.generalTotalIncome.textContent = formatCurrency(totalGeneralIncome).replace('R$', '').trim();
+    if (elements.generalTotalExpenses) elements.generalTotalExpenses.textContent = formatCurrency(totalGeneralExpenses).replace('R$', '').trim();
+    
+    renderLists();
+}
+
+function renderLists() {
+    renderList(elements.incomesList, currentMonthData.incomes, 'income');
+    renderList(elements.expensesList, currentMonthData.expenses, 'expense');
+    renderList(elements.comprasMumbucaList, currentMonthData.shoppingItems, 'shopping');
+    renderList(elements.abastecimentoMumbucaList, [], 'abastecimento'); // Placeholder if separated
+    renderList(elements.avulsosList, currentMonthData.avulsosItems, 'avulsos');
+    
+    // Goals
+    if (elements.goalsList) {
+        elements.goalsList.innerHTML = '';
+        currentMonthData.goals.forEach(goal => {
+             // Calculate spent for this category
+             let spent = 0;
+             const relevantExpenses = [...currentMonthData.expenses, ...(currentMonthData.avulsosItems || [])];
+             spent = relevantExpenses.filter(e => e.category === goal.category).reduce((acc, curr) => acc + curr.amount, 0);
+             
+             const percent = Math.min((spent / goal.amount) * 100, 100);
+             const statusClass = percent > 100 ? 'danger' : (percent > 80 ? 'warning' : 'safe');
+             
+             const div = document.createElement('div');
+             div.className = 'goal-card';
+             div.innerHTML = `
+                <div class="goal-card-header">
+                    <div class="goal-card-title">${SPENDING_CATEGORIES[goal.category]?.icon || ICONS.goal} ${SPENDING_CATEGORIES[goal.category]?.name || 'Meta'}</div>
+                </div>
+                <div class="goal-amounts">
+                    <span class="goal-spent-amount">${formatCurrency(spent)}</span>
+                    <span class="goal-total-amount"> de ${formatCurrency(goal.amount)}</span>
+                </div>
+                <div class="goal-progress-bar"><div class="goal-progress-bar-inner ${statusClass}" style="width: ${percent}%"></div></div>
+                <div class="goal-remaining ${percent > 100 ? 'over' : 'safe'}">${percent > 100 ? 'Excedido: ' : 'Resta: '}${formatCurrency(Math.abs(goal.amount - spent))}</div>
+             `;
+             elements.goalsList.appendChild(div);
+        });
+    }
+
+    // Accounts
+    if (elements.bankAccountsList) {
+        elements.bankAccountsList.innerHTML = '';
+        currentMonthData.bankAccounts.forEach(acc => {
+             const div = document.createElement('div');
+             div.className = 'account-item';
+             div.innerHTML = `<span class="account-name">${acc.name}</span><span class="account-balance">${formatCurrency(acc.balance)}</span>`;
+             elements.bankAccountsList.appendChild(div);
+        });
     }
 }
 
-function updateMonthDisplay() { elements.monthDisplay.textContent = `${getMonthName(currentMonth)} ${currentYear}`; }
-
-// ... (Keep renderList, createItems, renderGoalsPage, renderBankAccounts, renderOverviewChart, renderMonthlyAnalysis, Modal Handlers, Add/Edit/Delete Logic)
-// All these functions remain valid and use the updated data structure correctly.
-
-function renderList(type, listElement, itemCreator, emptyMessage, emptyIcon, groupByCat = false) {
-    if (!listElement) return;
-    listElement.innerHTML = '';
-    const items = currentMonthData[type] || [];
-    if (items.length === 0) { listElement.innerHTML = `<div class="empty-state">${emptyIcon}<div>${emptyMessage}</div></div>`; return; }
-    if (groupByCat) {
-        const fixed = items.filter(i => i.type === 'fixed');
-        const variable = items.filter(i => i.type === 'variable');
-        if (fixed.length > 0) {
-            const header = document.createElement('div'); header.className = 'item-header'; header.innerHTML = `${ICONS.fixed} Despesas Fixas`; listElement.appendChild(header);
-            fixed.sort((a,b) => Number(a.paid) - Number(b.paid) || new Date(a.dueDate) - new Date(b.dueDate)).forEach(item => listElement.appendChild(itemCreator(item, type)));
-        }
-        if (variable.length > 0) {
-            const header = document.createElement('div'); header.className = 'item-header'; header.innerHTML = `${ICONS.variable} Despesas Variáveis`; listElement.appendChild(header);
-            variable.sort((a,b) => Number(a.paid) - Number(b.paid) || new Date(a.dueDate) - new Date(b.dueDate)).forEach(item => listElement.appendChild(itemCreator(item, type)));
-        }
-    } else {
-        items.sort((a, b) => {
-            const activityTimestampA = a.paidDate ? new Date(a.paidDate).getTime() : (parseInt(a.id.split('_').pop(), 10) || 0);
-            const activityTimestampB = b.paidDate ? new Date(b.paidDate).getTime() : (parseInt(b.id.split('_').pop(), 10) || 0);
-            return activityTimestampB - activityTimestampA;
-        }).forEach(item => listElement.appendChild(itemCreator(item, type)));
+function renderList(container, items, type) {
+    if (!container) return;
+    container.innerHTML = '';
+    if (!items || items.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-light); padding:1rem; font-size:0.9rem;">Nenhum lançamento.</div>';
+        return;
     }
-}
 
-function renderFilteredList(listElement, items, itemCreator, emptyMessage, emptyIcon) {
-    if (!listElement) return;
-    listElement.innerHTML = '';
-    if (items.length === 0) { listElement.innerHTML = `<div class="empty-state">${emptyIcon}<div>${emptyMessage}</div></div>`; return; }
-    items.sort((a, b) => {
-        const activityTimestampA = a.paidDate ? new Date(a.paidDate).getTime() : (parseInt(a.id.split('_').pop(), 10) || 0);
-        const activityTimestampB = b.paidDate ? new Date(b.paidDate).getTime() : (parseInt(b.id.split('_').pop(), 10) || 0);
-        return activityTimestampB - activityTimestampA;
-    }).forEach(item => listElement.appendChild(itemCreator(item)));
-}
-
-// ... (Rest of item creators: createIncomeItem, createExpenseItem, createShoppingItem)
-function createIncomeItem(income, type) {
-    const item = document.createElement('div');
-    item.className = 'item';
-    item.onclick = () => openEditModal(income.id, type);
-    
-    const checkTitle = income.paid ? 'Marcar como não recebido' : 'Marcar como recebido';
-    const isSalary = income.category === 'Salário' || income.description.toUpperCase().includes('SALARIO');
-    const displayIcon = isSalary ? ICONS.cityHall : (SPENDING_CATEGORIES[income.category]?.icon || ICONS.income);
-
-    let dateHtml = '';
-    if (income.paid && income.paidDate) { dateHtml = `<span class="item-paid-date">${ICONS.check} ${formatDate(income.paidDate)}</span>`; } 
-    else if (income.date) { dateHtml = `<span class="item-due-date">${ICONS.calendar} ${formatDate(income.date)}</span>`; }
-
-    item.innerHTML = `
-        <button class="check-btn ${income.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
-        <div class="item-info-wrapper">
-            <div class="item-primary-info">
-                <div class="item-description ${income.paid ? 'paid' : ''}">${income.description}</div>
-                <div class="item-actions">
-                     <span class="item-amount income-amount">${formatCurrency(income.amount)}</span>
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+            <button class="check-btn ${item.paid ? 'paid' : ''}" data-id="${item.id}" data-type="${type}">${ICONS.check}</button>
+            <div class="item-info-wrapper" onclick="openEditModal('${item.id}', '${type}')">
+                <div class="item-primary-info">
+                    <span class="item-description ${item.paid ? 'paid' : ''}">${item.description}</span>
+                    <span class="item-amount ${type === 'income' ? 'income-amount' : 'expense-amount'}">${formatCurrency(item.amount)}</span>
+                </div>
+                <div class="item-secondary-info">
+                    <span class="item-meta">
+                        ${SPENDING_CATEGORIES[item.category]?.icon || ''} ${SPENDING_CATEGORIES[item.category]?.name || item.category || 'Geral'}
+                    </span>
+                    <span class="item-meta">
+                        ${ICONS.calendar} ${formatDate(item.dueDate || item.date)}
+                    </span>
                 </div>
             </div>
-            <div class="item-secondary-info">
-                 <div class="item-meta">
-                     ${displayIcon}
-                     ${dateHtml}
-                 </div>
-                 <div class="item-actions">
-                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
-                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
-                 </div>
-            </div>
-        </div>
-    `;
-    item.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(income.id, type); };
-    item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(income.id, type); };
-    item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(income.id, type); };
-    return item;
+        `;
+        container.appendChild(div);
+    });
 }
 
-function createExpenseItem(expense, type) {
-    const item = document.createElement('div');
-    const isOverdue = expense.dueDate && !expense.paid && new Date(expense.dueDate) < new Date();
+window.openEditModal = (id, type) => {
+    let item = null;
+    let list = [];
     
-    let dateInfo = '';
-    if (expense.paid && expense.paidDate) { dateInfo = `<span class="item-paid-date">${ICONS.check} Pago em ${formatDate(expense.paidDate)}</span>`; } 
-    else if (expense.dueDate) { dateInfo = `<span class="item-due-date ${isOverdue ? 'overdue' : ''}">${ICONS.calendar} Vence em ${formatDate(expense.dueDate)}</span>`; }
-
-    const isInvestment = expense.category === 'investimento';
-    const checkTitle = isInvestment ? (expense.paid ? 'Cancelar Check-in' : 'Fazer Check-in') : (expense.paid ? 'Marcar como pendente' : 'Marcar como pago');
-
-    item.className = 'item';
-    item.onclick = () => openEditModal(expense.id, type);
+    if (type === 'income') list = currentMonthData.incomes;
+    else if (type === 'expense') list = currentMonthData.expenses;
+    else if (type === 'shopping') list = currentMonthData.shoppingItems;
+    else if (type === 'avulsos') list = currentMonthData.avulsosItems;
     
-    item.innerHTML = `
-        <button class="check-btn ${expense.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
-        <div class="item-info-wrapper">
-            <div class="item-primary-info">
-                <div class="item-description ${expense.paid ? 'paid' : ''}">${expense.description}</div>
-                <div class="item-actions">
-                    <span class="item-amount expense-amount">${formatCurrency(expense.amount)}</span>
-                </div>
-            </div>
-            <div class="item-secondary-info">
-                 <div class="item-meta">
-                    <span class="item-type">${SPENDING_CATEGORIES[expense.category]?.icon || ''} ${SPENDING_CATEGORIES[expense.category]?.name || expense.category}</span>
-                    ${expense.total > 1 ? `<span class="item-installments">${expense.current}/${expense.total}</span>` : ''}
-                    ${dateInfo}
-                 </div>
-                 <div class="item-actions">
-                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
-                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
-                 </div>
-            </div>
-        </div>
-    `;
-    item.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(expense.id, type); };
-    item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(expense.id, type); };
-    item.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(expense.id, type); };
-    return item;
-}
-
-function createShoppingItem(item) {
-    const listItem = document.createElement('div');
-    listItem.className = 'item';
-    listItem.onclick = () => openEditModal(item.id);
-    const checkTitle = item.paid ? 'Marcar como pendente' : 'Marcar como pago';
-    const categoryInfo = SPENDING_CATEGORIES[item.category];
-    const categoryHtml = categoryInfo ? `<span class="item-type">${categoryInfo.icon} ${categoryInfo.name}</span>` : '';
-    let dateHtml = '';
-    if (item.paid && item.paidDate) { dateHtml = `<span class="item-paid-date">${ICONS.calendar} Pago em ${formatDate(item.paidDate)}</span>`; } 
-    else if (item.date) { dateHtml = `<span class="item-due-date">${ICONS.calendar} Em ${formatDate(item.date)}</span>`; }
-
-    listItem.innerHTML = `
-        <button class="check-btn ${item.paid ? 'paid' : ''}" title="${checkTitle}">${ICONS.check}</button>
-        <div class="item-info-wrapper" style="gap: 0.25rem;">
-            <div class="item-primary-info">
-                <div class="item-description ${item.paid ? 'paid' : ''}">${item.description}</div>
-                <div class="item-actions">
-                    <span class="item-amount expense-amount">${formatCurrency(item.amount)}</span>
-                    <button class="action-btn edit-btn" title="Editar">${ICONS.edit}</button>
-                    <button class="action-btn delete-btn" title="Excluir">${ICONS.delete}</button>
-                </div>
-            </div>
-            <div class="item-secondary-info">
-                <div class="item-meta">
-                    ${categoryHtml}
-                    ${dateHtml}
-                </div>
-            </div>
-        </div>
-    `;
-    listItem.querySelector('.check-btn').onclick = (e) => { e.stopPropagation(); togglePaid(item.id); };
-    listItem.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteItem(item.id); };
-    listItem.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditModal(item.id); };
-    return listItem;
-}
-
-// ... (Rest of functions: renderGoalsPage, renderSpendingGoals, renderSavingsGoals, renderBankAccounts, renderOverviewChart, renderMonthlyAnalysis, openModal, closeModal, openAddModal, openAddCategorizedModal, handleAddFormSubmit, openEditModal, handleEditFormSubmit, deleteItem, togglePaid, openGoalModal, handleGoalFormSubmit, deleteGoal, openSavingsGoalModal, handleSavingsGoalSubmit, openAccountModal, handleAccountSubmit, initAI, openAiModal, addMessageToChat, generateAiResponse, handleAiChatSubmit, init)
-// [These remain largely the same, just included to ensure full context if needed]
-
-function renderGoalsPage() { renderSpendingGoals(); renderSavingsGoals(); }
-function renderSpendingGoals() {
-    const listElement = elements.goalsList; if (!listElement) return; listElement.innerHTML = '';
-    const goals = currentMonthData.goals || [];
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    if (goals.length === 0) {
-        listElement.innerHTML = `<div class="empty-state-small">${ICONS.goal}<div>Defina metas de gastos por categoria.</div><button class="btn btn-secondary" id="addFirstGoalBtn">${ICONS.add} Adicionar Meta</button></div>`;
-        document.getElementById('addFirstGoalBtn').onclick = () => openGoalModal(); return;
-    }
-    goals.forEach(goal => {
-        const categoryInfo = SPENDING_CATEGORIES[goal.category]; if (!categoryInfo) return;
-        const spent = allExpenses.filter(e => e.category === goal.category).reduce((sum, e) => sum + e.amount, 0);
-        const progress = goal.amount > 0 ? (spent / goal.amount) * 100 : (spent > 0 ? 100 : 0);
-        const remaining = goal.amount - spent;
-        let progressClass = 'safe'; if (progress > 80 && progress <= 100) progressClass = 'warning'; else if (progress > 100) progressClass = 'danger';
-        let remainingText = `${formatCurrency(remaining)} restantes`; let remainingClass = 'safe';
-        if (remaining < 0) { remainingText = `${formatCurrency(Math.abs(remaining))} acima do limite`; remainingClass = 'over'; }
-        const autoInfo = (goal.category === 'shopping' || goal.category === 'investimento' || goal.category === 'abastecimento_mumbuca') ? `<div class="goal-card-auto-info">${ICONS.info} Automática</div>` : '';
-        const card = document.createElement('div'); card.className = 'goal-card';
-        card.innerHTML = `
-            <div class="goal-card-header"><div class="goal-card-title">${categoryInfo.icon} ${categoryInfo.name}</div><div class="goal-card-actions">${autoInfo}<button class="action-btn edit-goal-btn" title="Editar Meta">${ICONS.edit}</button><button class="action-btn delete-goal-btn" title="Excluir Meta">${ICONS.delete}</button></div></div>
-            <div class="goal-card-body"><div class="goal-amounts"><span class="goal-spent-amount">${formatCurrency(spent)}</span><span class="goal-total-amount">/ ${formatCurrency(goal.amount)}</span></div><div class="goal-progress-bar"><div class="goal-progress-bar-inner ${progressClass}" style="width: ${Math.min(progress, 100)}%;"></div></div><div class="goal-remaining ${remainingClass}">${remainingText}</div></div>`;
-        card.querySelector('.edit-goal-btn').onclick = (e) => { e.stopPropagation(); openGoalModal(goal.id); };
-        card.querySelector('.delete-goal-btn').onclick = (e) => { e.stopPropagation(); deleteGoal(goal.id); };
-        listElement.appendChild(card);
-    });
-}
-function renderSavingsGoals() {
-    const listElement = elements.savingsGoalsList; if (!listElement) return; listElement.innerHTML = '';
-    const goals = currentMonthData.savingsGoals || [];
-    if (goals.length === 0) {
-        listElement.innerHTML = `<div class="empty-state-small">${ICONS.savings}<div>Crie metas de poupança.</div><button class="btn btn-secondary" id="addFirstSavingsGoalBtn">${ICONS.add} Criar Meta de Poupança</button></div>`;
-        document.getElementById('addFirstSavingsGoalBtn').onclick = () => openSavingsGoalModal(); return;
-    }
-    goals.forEach(goal => {
-        const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0; const remaining = goal.targetAmount - goal.currentAmount;
-        const card = document.createElement('div'); card.className = 'goal-card';
-        card.innerHTML = `
-            <div class="goal-card-header"><div class="goal-card-title">${ICONS.savings} ${goal.description}</div><div class="goal-card-actions"><button class="action-btn edit-s-goal-btn" title="Editar Meta">${ICONS.edit}</button></div></div>
-            <div class="goal-card-body"><div class="goal-amounts"><span class="goal-spent-amount">${formatCurrency(goal.currentAmount)}</span><span class="goal-total-amount">/ ${formatCurrency(goal.targetAmount)}</span></div><div class="goal-progress-bar"><div class="goal-progress-bar-inner safe" style="width: ${Math.min(progress, 100)}%;"></div></div><div class="goal-remaining safe">${formatCurrency(remaining)} para completar</div></div>`;
-        card.querySelector('.edit-s-goal-btn').onclick = (e) => { e.stopPropagation(); openSavingsGoalModal(goal.id); };
-        listElement.appendChild(card);
-    });
-}
-function renderBankAccounts() {
-    const listElement = elements.bankAccountsList; if (!listElement) return; listElement.innerHTML = '';
-    const accounts = currentMonthData.bankAccounts || [];
-    accounts.forEach(account => {
-        const isReadOnly = account.name === "Poupança Viagem"; const item = document.createElement('div'); item.className = `account-item ${isReadOnly ? 'read-only' : ''}`;
-        let actionsHtml = `<button class="action-btn edit-account-btn" title="Editar">${ICONS.edit}</button>`; if (isReadOnly) { actionsHtml = `<div class="account-actions"><div class="goal-card-auto-info">${ICONS.info} Automática</div></div>`; }
-        item.innerHTML = `<span class="account-name">${account.name}</span><div class="d-flex align-items-center"><span class="account-balance">${formatCurrency(account.balance)}</span>${actionsHtml}</div>`;
-        if (!isReadOnly) { item.onclick = () => openAccountModal(account.id); item.querySelector('.edit-account-btn').onclick = (e) => { e.stopPropagation(); openAccountModal(account.id); }; }
-        listElement.appendChild(item);
-    });
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0); const totalEl = document.getElementById('accountsTotalValue'); if(totalEl) totalEl.textContent = formatCurrency(totalBalance);
-}
-function renderOverviewChart() {
-    const container = elements.overviewChart; if (!container) return; container.innerHTML = '';
-    const allExpenses = [...(currentMonthData.expenses || []), ...(currentMonthData.shoppingItems || []), ...(currentMonthData.avulsosItems || [])];
-    const totalSpent = allExpenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
-    if (totalSpent === 0) { container.innerHTML = `<div class="empty-state-small">${ICONS.info} Sem dados para exibir gráfico.</div>`; return; }
-    const spendingByCategory = allExpenses.filter(e => e.paid).reduce((acc, expense) => { const category = expense.category || 'outros'; acc[category] = (acc[category] || 0) + expense.amount; return acc; }, {});
-    const sortedCategories = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a).slice(0, 5);
-    const otherAmount = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a).slice(5).reduce((sum, [, amount]) => sum + amount, 0);
-    if (otherAmount > 0) { sortedCategories.push(['outros', otherAmount]); }
-    let chartHtml = '<div class="pie-chart-legend">';
-    sortedCategories.forEach(([categoryKey, amount]) => {
-        const categoryInfo = SPENDING_CATEGORIES[categoryKey] || SPENDING_CATEGORIES.outros; const percentage = (amount / totalSpent * 100).toFixed(1);
-        chartHtml += `<div class="legend-item"><div class="legend-label">${categoryInfo.icon} <span>${categoryInfo.name}</span></div><div class="legend-value">${formatCurrency(amount)} <span class="legend-percentage">(${percentage}%)</span></div></div>`;
-    });
-    chartHtml += '</div>'; container.innerHTML = chartHtml;
-}
-function renderMonthlyAnalysis() { const section = elements.monthlyAnalysisSection; if (section) section.style.display = 'block'; }
-function openModal(modal) { modal.classList.add('active'); elements.appContainer.style.overflow = 'hidden'; }
-function closeModal() { document.querySelectorAll('.modal.active').forEach(modal => modal.classList.remove('active')); elements.appContainer.style.overflow = ''; }
-
-function openAddModal(type) {
-    currentModalType = type; elements.addForm.reset(); populateAccountSelects(); elements.addModalTitle.textContent = `Adicionar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`;
-    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
-    elements.sourceAccountGroup.style.display = isExpense ? 'block' : 'none';
-    elements.typeGroup.style.display = type === 'expenses' ? 'block' : 'none';
-    elements.categoryGroup.style.display = isExpense ? 'block' : 'none';
-    elements.installmentsGroup.style.display = type === 'expenses' ? 'flex' : 'none';
-    const dateGroup = elements.dateGroup; const dateLabel = elements.transactionDateLabel; const dateInput = elements.transactionDateInput;
-    dateInput.value = new Date().toISOString().split('T')[0]; dateInput.required = false; dateGroup.style.display = 'none'; 
-    if (type === 'incomes') { dateGroup.style.display = 'block'; dateLabel.textContent = 'Data do Recebimento'; dateInput.required = true; } 
-    else if (type === 'expenses') { dateGroup.style.display = 'block'; dateLabel.textContent = 'Data de Vencimento'; } 
-    else if (['shoppingItems', 'avulsosItems'].includes(type)) { dateGroup.style.display = 'block'; dateLabel.textContent = 'Data da Compra'; dateInput.required = true; }
-    openModal(elements.addModal);
-}
-function openAddCategorizedModal(type, category) {
-    currentModalType = type; elements.addForm.reset(); populateAccountSelects(); elements.addModalTitle.textContent = `Adicionar ${SPENDING_CATEGORIES[category].name}`;
-    elements.typeGroup.style.display = 'none'; elements.installmentsGroup.style.display = 'none'; elements.categoryGroup.style.display = 'block'; elements.sourceAccountGroup.style.display = 'block';
-    elements.dateGroup.style.display = 'block'; elements.transactionDateLabel.textContent = 'Data da Compra'; elements.transactionDateInput.value = new Date().toISOString().split('T')[0]; elements.transactionDateInput.required = true;
-    document.getElementById('category').value = category; elements.categoryGroup.style.display = 'none'; openModal(elements.addModal);
-}
-function handleAddFormSubmit(e) {
-    e.preventDefault(); const formData = new FormData(e.target); const transactionDate = formData.get('transactionDate');
-    const newItem = { id: `${currentModalType.slice(0, -1)}_${Date.now()}`, description: formData.get('description'), amount: parseCurrency(formData.get('amount')), paid: false };
-    if (currentModalType === 'incomes') { newItem.paid = true; newItem.paidDate = transactionDate; const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal"); if (mainAccount) mainAccount.balance += newItem.amount; } 
-    else if (currentModalType === 'expenses') {
-        newItem.type = formData.get('type'); newItem.category = formData.get('category'); newItem.sourceAccountId = formData.get('sourceAccount'); newItem.dueDate = transactionDate; newItem.cyclic = formData.has('cyclic');
-        const totalInstallments = parseInt(formData.get('totalInstallments'), 10) || 1;
-        if (totalInstallments > 1) { newItem.current = parseInt(formData.get('currentInstallment'), 10) || 1; newItem.total = totalInstallments; } else { newItem.current = 1; newItem.total = 1; }
-    } else if (['shoppingItems', 'avulsosItems'].includes(currentModalType)) {
-        newItem.category = formData.get('category'); newItem.sourceAccountId = formData.get('sourceAccount'); const isMumbuca = ['shopping', 'abastecimento_mumbuca'].includes(newItem.category);
-        if(isMumbuca) { newItem.paid = true; newItem.paidDate = transactionDate; } else { newItem.paid = false; newItem.paidDate = null; newItem.date = transactionDate; }
-    }
-    if (currentMonthData[currentModalType]) { currentMonthData[currentModalType].push(newItem); } else { currentMonthData[currentModalType] = [newItem]; }
-    if(newItem.paid && newItem.sourceAccountId) { const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === newItem.sourceAccountId); if (sourceAccount) sourceAccount.balance -= newItem.amount; }
-    saveData(); closeModal();
-}
-function openEditModal(itemId, itemType = null) {
-    const findRes = itemType ? { item: currentMonthData[itemType]?.find(i => i.id === itemId), type: itemType } : null;
-    let item, type; if(findRes) { item = findRes.item; type = findRes.type; } else { const lists = ['incomes', 'expenses', 'shoppingItems', 'avulsosItems']; for (const listType of lists) { const found = (currentMonthData[listType] || []).find(i => i.id === itemId); if (found) { item = found; type = listType; break; } } }
+    item = list.find(i => i.id === id);
     if (!item) return;
-    elements.editModalTitle.textContent = `Editar ${type === 'incomes' ? 'Entrada' : 'Despesa'}`; elements.editForm.reset(); populateAccountSelects();
-    elements.editItemId.value = itemId; elements.editItemType.value = type; elements.editDescription.value = item.description; elements.editAmount.value = item.amount.toFixed(2).replace('.', ',');
-    elements.editCategoryGroup.style.display = 'none'; elements.editSourceAccountGroup.style.display = 'none'; elements.editDueDateGroup.style.display = 'none'; elements.editInstallmentsGroup.style.display = 'none'; elements.editInstallmentsInfo.style.display = 'none';
-    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
-    if (isExpense) { elements.editSourceAccountGroup.style.display = 'block'; const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id; elements.editSourceAccount.value = item.sourceAccountId || mainAccountId || ''; }
-    if (type === 'expenses') {
-        elements.editCategoryGroup.style.display = 'block'; elements.editCategory.value = item.category || ''; elements.editDueDateGroup.style.display = 'block'; document.querySelector('#editDueDateGroup label').textContent = 'Vencimento'; elements.editDueDate.value = item.dueDate || ''; elements.editInstallmentsGroup.style.display = 'flex';
-        if(item.total > 1) { elements.editInstallmentsInfo.style.display = 'block'; elements.editCurrentInstallment.value = item.current; elements.editTotalInstallments.value = item.total; }
-    } else if (['shoppingItems', 'avulsosItems'].includes(type)) {
-        elements.editCategoryGroup.style.display = 'block'; elements.editCategory.value = item.category || ''; elements.editDueDateGroup.style.display = 'block'; document.querySelector('#editDueDateGroup label').textContent = 'Data da Compra'; elements.editDueDate.value = item.date || '';
-    }
-    elements.editPaidDateGroup.style.display = item.paid ? 'block' : 'none'; if (item.paid) { elements.editPaidDate.value = item.paidDate || ''; }
-    openModal(elements.editModal);
-}
-function handleEditFormSubmit(e) {
-    e.preventDefault(); const formData = new FormData(e.target); const itemId = formData.get('itemId'); const itemType = formData.get('itemType'); const itemIndex = (currentMonthData[itemType] || []).findIndex(i => i.id === itemId); if (itemIndex === -1) return;
-    const updatedItem = { ...currentMonthData[itemType][itemIndex], description: formData.get('description'), amount: parseCurrency(formData.get('amount')), };
-    const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(itemType); if (isExpense) updatedItem.sourceAccountId = formData.get('sourceAccount');
-    if (itemType === 'expenses') { updatedItem.category = formData.get('category'); updatedItem.dueDate = formData.get('dueDate'); const total = parseInt(formData.get('totalInstallments'), 10) || 1; updatedItem.total = total; updatedItem.current = total > 1 ? (parseInt(formData.get('currentInstallment'), 10) || 1) : 1; } else if (['shoppingItems', 'avulsosItems'].includes(itemType)) { updatedItem.category = formData.get('category'); updatedItem.date = formData.get('dueDate'); }
-    if (updatedItem.paid) { updatedItem.paidDate = formData.get('paidDate') || updatedItem.paidDate; }
-    currentMonthData[itemType][itemIndex] = updatedItem; saveData(); closeModal();
-}
-function deleteItem(itemId, itemType = null) {
-    if (confirm('Tem certeza que deseja excluir este item?')) {
-        let type = itemType; let item;
-        if(!type) { const lists = ['incomes', 'expenses', 'shoppingItems', 'avulsosItems']; for (const listType of lists) { const found = (currentMonthData[listType] || []).find(i => i.id === itemId); if (found) { item = found; type = listType; break; } } } else { item = currentMonthData[type]?.find(i => i.id === itemId); }
-        if (item && type) {
-            if(item.paid) {
-                const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type);
-                if (type === 'incomes') { const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal"); if (mainAccount) mainAccount.balance -= item.amount; } 
-                else if (isExpense) { const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id; const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === (item.sourceAccountId || mainAccountId)); if(sourceAccount) sourceAccount.balance += item.amount; }
-            }
-            currentMonthData[type] = currentMonthData[type].filter(i => i.id !== itemId); saveData();
-        }
-    }
-}
-function togglePaid(itemId, itemType = null) {
-    let type = itemType; let item;
-    if(!type) { const lists = ['incomes', 'expenses', 'shoppingItems', 'avulsosItems']; for (const listType of lists) { const found = (currentMonthData[listType] || []).find(i => i.id === itemId); if (found) { item = found; type = listType; break; } } } else { item = currentMonthData[type]?.find(i => i.id === itemId); }
+
+    elements.editItemId.value = id;
+    elements.editItemType.value = type;
+    elements.editDescription.value = item.description;
+    elements.editAmount.value = formatCurrency(item.amount).replace('R$', '').trim();
+    
+    if (elements.editCategory) elements.editCategory.value = item.category || '';
+    if (elements.editSourceAccount) elements.editSourceAccount.value = item.sourceAccountId || '';
+    if (elements.editDueDate) elements.editDueDate.value = item.dueDate || item.date || '';
+    if (elements.editPaidDate) elements.editPaidDate.value = item.paidDate || '';
+    
+    elements.editModal.classList.add('active');
+};
+
+function togglePaidStatus(id, type) {
+    let list = [];
+    if (type === 'income') list = currentMonthData.incomes;
+    else if (type === 'expense') list = currentMonthData.expenses;
+    else if (type === 'shopping') list = currentMonthData.shoppingItems;
+    else if (type === 'avulsos') list = currentMonthData.avulsosItems;
+    
+    const item = list.find(i => i.id === id);
     if (item) {
-        item.paid = !item.paid; item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
-        const isExpense = ['expenses', 'shoppingItems', 'avulsosItems'].includes(type); const isMumbucaIncome = item.description?.toUpperCase().includes('MUMBUCA');
-        if (type === 'incomes' && !isMumbucaIncome) { const mainAccount = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal"); if (mainAccount) mainAccount.balance += item.paid ? item.amount : -item.amount; } 
-        else if (isExpense) { const mainAccountId = currentMonthData.bankAccounts.find(a => a.name === "Conta Principal")?.id; const sourceAccount = currentMonthData.bankAccounts.find(a => a.id === (item.sourceAccountId || mainAccountId)); if (sourceAccount) sourceAccount.balance -= item.paid ? item.amount : -item.amount; }
+        item.paid = !item.paid;
+        item.paidDate = item.paid ? new Date().toISOString().split('T')[0] : null;
+        
+        // Update Account Balance Logic
+        if (item.sourceAccountId) {
+            const acc = currentMonthData.bankAccounts.find(a => a.id === item.sourceAccountId);
+            if (acc) {
+                if (type === 'income') {
+                    acc.balance += item.paid ? item.amount : -item.amount;
+                } else {
+                    acc.balance -= item.paid ? item.amount : -item.amount;
+                }
+            }
+        }
+        
         saveData();
     }
 }
-function openGoalModal(goalId = null) {
-    elements.goalForm.reset(); elements.goalId.value = '';
-    if (goalId) { const goal = currentMonthData.goals.find(g => g.id === goalId); if (goal) { elements.goalModalTitle.textContent = 'Editar Meta de Gastos'; elements.goalId.value = goal.id; elements.goalCategory.value = goal.category; elements.goalAmount.value = goal.amount.toFixed(2).replace('.', ','); } } else { elements.goalModalTitle.textContent = 'Nova Meta de Gastos'; }
-    openModal(elements.goalModal);
-}
-function handleGoalFormSubmit(e) {
-    e.preventDefault(); const formData = new FormData(e.target); const goalId = formData.get('goalId');
-    const goalData = { category: formData.get('goalCategory'), amount: parseCurrency(formData.get('goalAmount')), };
-    if (goalId) { const index = currentMonthData.goals.findIndex(g => g.id === goalId); if (index > -1) { currentMonthData.goals[index] = { ...currentMonthData.goals[index], ...goalData }; } } else { goalData.id = `goal_${Date.now()}`; currentMonthData.goals.push(goalData); }
-    saveData(); closeModal();
-}
-function deleteGoal(goalId) { if (confirm('Tem certeza que deseja excluir esta meta?')) { currentMonthData.goals = currentMonthData.goals.filter(g => g.id !== goalId); saveData(); } }
-function openSavingsGoalModal(goalId = null) {
-    elements.savingsGoalForm.reset(); elements.savingsGoalId.value = '';
-    if (goalId) { const goal = currentMonthData.savingsGoals.find(g => g.id === goalId); if (goal) { elements.savingsGoalModalTitle.textContent = 'Editar Meta de Poupança'; elements.savingsGoalId.value = goal.id; elements.savingsGoalDescription.value = goal.description; elements.savingsGoalCurrent.value = goal.currentAmount.toFixed(2).replace('.', ','); elements.savingsGoalTarget.value = goal.targetAmount.toFixed(2).replace('.', ','); } } else { elements.savingsGoalModalTitle.textContent = 'Nova Meta de Poupança'; }
-    openModal(elements.savingsGoalModal);
-}
-function handleSavingsGoalSubmit(e) {
-    e.preventDefault(); const formData = new FormData(e.target); const goalId = formData.get('savingsGoalId');
-    const goalData = { description: formData.get('savingsGoalDescription'), currentAmount: parseCurrency(formData.get('savingsGoalCurrent')), targetAmount: parseCurrency(formData.get('savingsGoalTarget')), };
-    if (goalId) { const index = currentMonthData.savingsGoals.findIndex(g => g.id === goalId); if (index > -1) { currentMonthData.savingsGoals[index] = { ...currentMonthData.savingsGoals[index], ...goalData }; } } else { goalData.id = `sg_${Date.now()}`; currentMonthData.savingsGoals.push(goalData); }
-    saveData(); closeModal();
-}
-function openAccountModal(accountId = null) {
-    elements.accountForm.reset(); elements.accountId.value = '';
-    if (accountId) { const account = currentMonthData.bankAccounts.find(a => a.id === accountId); if(account) { elements.accountModalTitle.textContent = 'Editar Conta'; elements.accountId.value = account.id; elements.accountName.value = account.name; elements.accountBalance.value = account.balance.toFixed(2).replace('.', ','); } } else { elements.accountModalTitle.textContent = 'Nova Conta Bancária'; }
-    openModal(elements.accountModal);
-}
-function handleAccountSubmit(e) {
-    e.preventDefault(); const formData = new FormData(e.target); const accountId = formData.get('accountId');
-    const accountData = { name: formData.get('accountName'), balance: parseCurrency(formData.get('accountBalance')), };
-    if (accountId) { const index = currentMonthData.bankAccounts.findIndex(a => a.id === accountId); if (index > -1) { currentMonthData.bankAccounts[index] = { ...currentMonthData.bankAccounts[index], ...accountData }; } } else { accountData.id = `acc_${Date.now()}`; currentMonthData.bankAccounts.push(accountData); }
-    saveData(); closeModal();
-}
-function initAI() { if (process.env.API_KEY) { try { ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); } catch (error) { console.error("Error initializing GoogleGenAI:", error); } } else { console.warn("API_KEY for Gemini not found."); } }
-async function openAiModal() { if (!ai) { alert("A IA da Gemini não está configurada."); return; } elements.aiAnalysis.innerHTML = ''; const initialPrompt = "Analise os dados financeiros deste mês e me dê dicas concisas de economia. Use listas. Responda em Português."; addMessageToChat('user', initialPrompt); openModal(elements.aiModal); await generateAiResponse(initialPrompt, true); }
-function addMessageToChat(role, text, isLoading = false) {
-    const messageElement = document.createElement('div'); messageElement.className = `chat-message ${role}-message`;
-    let content = simpleMarkdownToHtml(text); if (isLoading) { content = `<div class="loading-dots"><span></span><span></span><span></span></div>`; messageElement.id = 'loading-bubble'; }
-    messageElement.innerHTML = `<div class="message-bubble">${content}</div>`; elements.aiAnalysis.appendChild(messageElement); elements.aiAnalysis.scrollTop = elements.aiAnalysis.scrollHeight;
-}
-async function generateAiResponse(prompt, isInitial = false) {
-    const loadingBubble = document.getElementById('loading-bubble'); if (!loadingBubble && !isInitial) { addMessageToChat('ai', '', true); }
-    try {
-        if (!chat) { chat = ai.chats.create({ model: 'gemini-2.5-flash', systemInstruction: `Você é um analista financeiro pessoal. Responda em português do Brasil. Seja extremamente conciso, direto e use formatação de lista. Foque em números, saldos e ações práticas.` }); }
-        const cleanDataForAI = JSON.parse(JSON.stringify(currentMonthData)); const fullPrompt = `Dados financeiros (JSON): ${JSON.stringify(cleanDataForAI, null, 2)}. Pergunta: ${prompt}`;
-        const response = await chat.sendMessage({ message: fullPrompt });
-        const text = response.text; const existingLoadingBubble = document.getElementById('loading-bubble'); if(existingLoadingBubble) existingLoadingBubble.remove(); addMessageToChat('ai', text);
-    } catch (error) { const existingLoadingBubble = document.getElementById('loading-bubble'); if(existingLoadingBubble) existingLoadingBubble.remove(); addMessageToChat('ai', "Erro ao conectar com a IA."); }
-}
-async function handleAiChatSubmit(e) { e.preventDefault(); const prompt = elements.aiChatInput.value.trim(); if (!prompt) return; addMessageToChat('user', prompt); elements.aiChatInput.value = ''; await generateAiResponse(prompt); }
 
+// =================================================================================
+// INIT & EVENT LISTENERS
+// =================================================================================
 function init() {
-    const now = new Date(); currentMonth = now.getMonth() + 1; currentYear = now.getFullYear(); updateMonthDisplay();
+    // Populate Selects
+    populateCategorySelects();
+    populateAccountSelects();
+    
+    // Auth
+    if (isConfigured && auth) {
+         onAuthStateChanged(auth, (user) => {
+             if (user) {
+                 currentUser = user;
+                 loadDataForCurrentMonth();
+                 updateSyncButtonState();
+             } else {
+                 signInAnonymously(auth).catch((error) => {
+                     isOfflineMode = true;
+                     loadDataForCurrentMonth();
+                     updateSyncButtonState();
+                 });
+             }
+         });
+    } else {
+        isOfflineMode = true;
+        loadDataForCurrentMonth();
+        updateSyncButtonState();
+    }
+
+    // Event Listeners
+    if (elements.menuBtn) elements.menuBtn.addEventListener('click', () => {
+        elements.sidebar.classList.add('active');
+        elements.sidebarOverlay.classList.add('active');
+    });
+
+    if (elements.closeSidebarBtn) elements.closeSidebarBtn.addEventListener('click', () => {
+        elements.sidebar.classList.remove('active');
+        elements.sidebarOverlay.classList.remove('active');
+    });
+
+    if (elements.sidebarOverlay) elements.sidebarOverlay.addEventListener('click', () => {
+        elements.sidebar.classList.remove('active');
+        elements.sidebarOverlay.classList.remove('active');
+    });
+    
+    // Header Actions
     document.querySelector('.prev-month')?.addEventListener('click', () => changeMonth(-1));
     document.querySelector('.next-month')?.addEventListener('click', () => changeMonth(1));
-    if(elements.toggleBalanceBtn) { elements.toggleBalanceBtn.addEventListener('click', () => { showBalance = !showBalance; renderHeader(); }); }
+    elements.toggleBalanceBtn?.addEventListener('click', () => {
+        showBalance = !showBalance;
+        updateSummary();
+    });
     
-    elements.menuBtn?.addEventListener('click', openSidebar); 
-    elements.closeSidebarBtn?.addEventListener('click', closeSidebar); 
-    elements.sidebarOverlay?.addEventListener('click', closeSidebar);
-    
-    elements.tabButtons.forEach(btn => { btn.addEventListener('click', () => navigateTo(btn.dataset.view)); });
-    elements.segmentedBtns.forEach(btn => { btn.addEventListener('click', () => { elements.segmentedBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.list-view').forEach(list => { list.style.display = list.id === `list-${btn.dataset.list}` ? 'block' : 'none'; }); }); });
+    // Refresh Button
+    document.getElementById('open-ai-btn-header')?.addEventListener('click', () => {
+       window.location.reload(); 
+    });
 
-    document.getElementById('open-ai-btn-header')?.addEventListener('click', openAiModal);
+    // Navigation Tabs
+    elements.tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const viewId = btn.dataset.view;
+            elements.appViews.forEach(view => {
+                view.classList.remove('active');
+                if (view.id === `view-${viewId}`) view.classList.add('active');
+            });
+        });
+    });
+
+    // Segmented Control (Lançamentos)
+    elements.segmentedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.segmentedBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const listId = btn.dataset.list;
+            document.querySelectorAll('.list-view').forEach(l => l.style.display = 'none');
+            const listEl = document.getElementById(`list-${listId}`);
+            if (listEl) listEl.style.display = 'block';
+        });
+    });
+
+    // Modals Open
+    document.getElementById('add-income-btn')?.addEventListener('click', () => { currentModalType = 'income'; elements.addModalTitle.textContent = 'Nova Entrada'; elements.typeGroup.style.display='none'; elements.addModal.classList.add('active'); });
+    document.getElementById('add-expense-btn')?.addEventListener('click', () => { currentModalType = 'expense'; elements.addModalTitle.textContent = 'Nova Despesa'; elements.typeGroup.style.display='block'; elements.addModal.classList.add('active'); });
+    document.getElementById('add-compras-mumbuca-btn')?.addEventListener('click', () => { currentModalType = 'shopping'; elements.addModalTitle.textContent = 'Compra Mumbuca'; elements.typeGroup.style.display='none'; elements.addModal.classList.add('active'); });
+    document.getElementById('add-avulso-btn')?.addEventListener('click', () => { currentModalType = 'avulsos'; elements.addModalTitle.textContent = 'Novo Avulso'; elements.typeGroup.style.display='none'; elements.addModal.classList.add('active'); });
     
-    document.getElementById('add-income-btn')?.addEventListener('click', () => openAddModal('incomes'));
-    document.getElementById('add-expense-btn')?.addEventListener('click', () => openAddModal('expenses'));
-    document.getElementById('add-compras-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'shopping'));
-    document.getElementById('add-abastecimento-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'abastecimento_mumbuca'));
-    document.getElementById('add-avulso-btn')?.addEventListener('click', () => openAddModal('avulsosItems'));
+    // Modals Close
+    document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        });
+    });
+
+    // Forms
+    elements.addForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const amount = parseCurrency(formData.get('amount'));
+        if (amount <= 0) return;
+
+        const newItem = {
+            id: `${currentModalType}_${Date.now()}`,
+            description: formData.get('description'),
+            amount: amount,
+            category: formData.get('category'),
+            date: formData.get('transactionDate') || new Date().toISOString().split('T')[0],
+            dueDate: formData.get('transactionDate') || new Date().toISOString().split('T')[0], // Default due date same as date
+            paid: false,
+            sourceAccountId: formData.get('sourceAccount')
+        };
+
+        if (currentModalType === 'income') currentMonthData.incomes.push(newItem);
+        else if (currentModalType === 'expense') currentMonthData.expenses.push(newItem);
+        else if (currentModalType === 'shopping') currentMonthData.shoppingItems.push(newItem);
+        else if (currentModalType === 'avulsos') currentMonthData.avulsosItems.push(newItem);
+
+        saveData();
+        e.target.reset();
+        elements.addModal.classList.remove('active');
+    });
     
-    document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
-    document.getElementById('add-account-btn')?.addEventListener('click', () => openAccountModal());
-    document.getElementById('add-savings-goal-btn')?.addEventListener('click', () => openSavingsGoalModal());
+    elements.editForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = elements.editItemId.value;
+        const type = elements.editItemType.value;
+        const amount = parseCurrency(elements.editAmount.value);
+        
+        let list = [];
+        if (type === 'income') list = currentMonthData.incomes;
+        else if (type === 'expense') list = currentMonthData.expenses;
+        else if (type === 'shopping') list = currentMonthData.shoppingItems;
+        else if (type === 'avulsos') list = currentMonthData.avulsosItems;
+        
+        const item = list.find(i => i.id === id);
+        if (item) {
+            item.description = elements.editDescription.value;
+            item.amount = amount;
+            item.category = elements.editCategory.value;
+            item.dueDate = elements.editDueDate.value;
+            if (elements.editPaidDate.value) item.paidDate = elements.editPaidDate.value;
+            if (elements.editSourceAccount.value) item.sourceAccountId = elements.editSourceAccount.value;
+            saveData();
+            elements.editModal.classList.remove('active');
+        }
+    });
+
+    document.getElementById('deleteItemBtn')?.addEventListener('click', () => {
+        const id = elements.editItemId.value;
+        const type = elements.editItemType.value;
+        
+        if (type === 'income') currentMonthData.incomes = currentMonthData.incomes.filter(i => i.id !== id);
+        else if (type === 'expense') currentMonthData.expenses = currentMonthData.expenses.filter(i => i.id !== id);
+        else if (type === 'shopping') currentMonthData.shoppingItems = currentMonthData.shoppingItems.filter(i => i.id !== id);
+        else if (type === 'avulsos') currentMonthData.avulsosItems = currentMonthData.avulsosItems.filter(i => i.id !== id);
+        
+        saveData();
+        elements.editModal.classList.remove('active');
+    });
+
+    // Check Button Delegation
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.check-btn');
+        if (btn) {
+            e.stopPropagation();
+            togglePaidStatus(btn.dataset.id, btn.dataset.type);
+        }
+    });
     
-    document.querySelectorAll('.close-modal-btn').forEach(btn => { btn.addEventListener('click', closeModal); });
-    document.getElementById('open-ai-btn')?.addEventListener('click', openAiModal);
-    
-    elements.addForm?.addEventListener('submit', handleAddFormSubmit); 
-    elements.editForm?.addEventListener('submit', handleEditFormSubmit); 
-    elements.aiChatForm?.addEventListener('submit', handleAiChatSubmit); 
-    elements.goalForm?.addEventListener('submit', handleGoalFormSubmit); 
-    elements.accountForm?.addEventListener('submit', handleAccountSubmit); 
-    elements.savingsGoalForm?.addEventListener('submit', handleSavingsGoalSubmit);
-    
-    document.getElementById('deleteItemBtn')?.addEventListener('click', () => { const itemId = elements.editItemId.value; const itemType = elements.editItemType.value; closeModal(); deleteItem(itemId, itemType); });
-    const syncBtn = document.getElementById('sync-btn'); if (syncBtn) { syncBtn.addEventListener('click', () => { if (!isSyncing && isConfigured) { saveDataToFirestore(); } }); }
-    
-    populateCategorySelects(); populateAccountSelects(); initAI();
-    
-    if (isConfigured) { onAuthStateChanged(auth, user => { if (user) { currentUser = user; syncStatus = 'syncing'; updateSyncButtonState(); loadDataForCurrentMonth(); } else { currentUser = null; signInAnonymously(auth).catch(error => { isOfflineMode = true; syncStatus = 'disconnected'; updateSyncButtonState(); loadDataForCurrentMonth(); }); } updateProfilePage(); }); } else { isOfflineMode = true; currentUser = { uid: "localUser" }; loadDataForCurrentMonth(); }
+    // Sync Button
+    if (elements.syncBtn) elements.syncBtn.addEventListener('click', saveDataToFirestore);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// Start App
+init();
