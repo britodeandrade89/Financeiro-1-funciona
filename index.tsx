@@ -697,6 +697,22 @@ function updateSummary() {
              elements.cardMumbucaBalance.classList.add(cardBgClass);
         }
     }
+
+    // Update General Summary Cards
+    const generalTotalIncome = allIncomes
+        .filter(i => i.paid && !i.description.toUpperCase().includes('MUMBUCA'))
+        .reduce((sum, i) => sum + i.amount, 0);
+
+    const generalTotalExpenses = allGeneralExpenses
+        .filter(e => e.paid && e.category !== 'shopping' && e.category !== 'abastecimento_mumbuca')
+        .reduce((sum, e) => sum + e.amount, 0);
+    
+    if(document.getElementById('generalTotalIncome')) {
+        document.getElementById('generalTotalIncome').textContent = formatCurrency(generalTotalIncome);
+    }
+    if(document.getElementById('generalTotalExpenses')) {
+        document.getElementById('generalTotalExpenses').textContent = formatCurrency(generalTotalExpenses);
+    }
 }
 
 function updateMonthDisplay() { elements.monthDisplay.textContent = `${getMonthName(currentMonth)} ${currentYear}`; }
@@ -705,6 +721,7 @@ function updateMonthDisplay() { elements.monthDisplay.textContent = `${getMonthN
 // All these functions remain valid and use the updated data structure correctly.
 
 function renderList(type, listElement, itemCreator, emptyMessage, emptyIcon, groupByCat = false) {
+    if (!listElement) return;
     listElement.innerHTML = '';
     const items = currentMonthData[type] || [];
     if (items.length === 0) { listElement.innerHTML = `<div class="empty-state">${emptyIcon}<div>${emptyMessage}</div></div>`; return; }
@@ -729,6 +746,7 @@ function renderList(type, listElement, itemCreator, emptyMessage, emptyIcon, gro
 }
 
 function renderFilteredList(listElement, items, itemCreator, emptyMessage, emptyIcon) {
+    if (!listElement) return;
     listElement.innerHTML = '';
     if (items.length === 0) { listElement.innerHTML = `<div class="empty-state">${emptyIcon}<div>${emptyMessage}</div></div>`; return; }
     items.sort((a, b) => {
@@ -1077,27 +1095,44 @@ async function handleAiChatSubmit(e) { e.preventDefault(); const prompt = elemen
 
 function init() {
     const now = new Date(); currentMonth = now.getMonth() + 1; currentYear = now.getFullYear(); updateMonthDisplay();
-    document.querySelector('.prev-month').addEventListener('click', () => changeMonth(-1));
-    document.querySelector('.next-month').addEventListener('click', () => changeMonth(1));
+    document.querySelector('.prev-month')?.addEventListener('click', () => changeMonth(-1));
+    document.querySelector('.next-month')?.addEventListener('click', () => changeMonth(1));
     if(elements.toggleBalanceBtn) { elements.toggleBalanceBtn.addEventListener('click', () => { showBalance = !showBalance; renderHeader(); }); }
-    elements.menuBtn.addEventListener('click', openSidebar); elements.closeSidebarBtn.addEventListener('click', closeSidebar); elements.sidebarOverlay.addEventListener('click', closeSidebar);
+    
+    elements.menuBtn?.addEventListener('click', openSidebar); 
+    elements.closeSidebarBtn?.addEventListener('click', closeSidebar); 
+    elements.sidebarOverlay?.addEventListener('click', closeSidebar);
+    
     elements.tabButtons.forEach(btn => { btn.addEventListener('click', () => navigateTo(btn.dataset.view)); });
     elements.segmentedBtns.forEach(btn => { btn.addEventListener('click', () => { elements.segmentedBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.list-view').forEach(list => { list.style.display = list.id === `list-${btn.dataset.list}` ? 'block' : 'none'; }); }); });
+
     document.getElementById('open-ai-btn-header')?.addEventListener('click', openAiModal);
+    
     document.getElementById('add-income-btn')?.addEventListener('click', () => openAddModal('incomes'));
     document.getElementById('add-expense-btn')?.addEventListener('click', () => openAddModal('expenses'));
     document.getElementById('add-compras-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'shopping'));
     document.getElementById('add-abastecimento-mumbuca-btn')?.addEventListener('click', () => openAddCategorizedModal('avulsosItems', 'abastecimento_mumbuca'));
     document.getElementById('add-avulso-btn')?.addEventListener('click', () => openAddModal('avulsosItems'));
+    
     document.getElementById('add-goal-btn')?.addEventListener('click', () => openGoalModal());
     document.getElementById('add-account-btn')?.addEventListener('click', () => openAccountModal());
     document.getElementById('add-savings-goal-btn')?.addEventListener('click', () => openSavingsGoalModal());
+    
     document.querySelectorAll('.close-modal-btn').forEach(btn => { btn.addEventListener('click', closeModal); });
     document.getElementById('open-ai-btn')?.addEventListener('click', openAiModal);
-    elements.addForm.addEventListener('submit', handleAddFormSubmit); elements.editForm.addEventListener('submit', handleEditFormSubmit); elements.aiChatForm.addEventListener('submit', handleAiChatSubmit); elements.goalForm.addEventListener('submit', handleGoalFormSubmit); elements.accountForm.addEventListener('submit', handleAccountSubmit); elements.savingsGoalForm.addEventListener('submit', handleSavingsGoalSubmit);
+    
+    elements.addForm?.addEventListener('submit', handleAddFormSubmit); 
+    elements.editForm?.addEventListener('submit', handleEditFormSubmit); 
+    elements.aiChatForm?.addEventListener('submit', handleAiChatSubmit); 
+    elements.goalForm?.addEventListener('submit', handleGoalFormSubmit); 
+    elements.accountForm?.addEventListener('submit', handleAccountSubmit); 
+    elements.savingsGoalForm?.addEventListener('submit', handleSavingsGoalSubmit);
+    
     document.getElementById('deleteItemBtn')?.addEventListener('click', () => { const itemId = elements.editItemId.value; const itemType = elements.editItemType.value; closeModal(); deleteItem(itemId, itemType); });
     const syncBtn = document.getElementById('sync-btn'); if (syncBtn) { syncBtn.addEventListener('click', () => { if (!isSyncing && isConfigured) { saveDataToFirestore(); } }); }
+    
     populateCategorySelects(); populateAccountSelects(); initAI();
+    
     if (isConfigured) { onAuthStateChanged(auth, user => { if (user) { currentUser = user; syncStatus = 'syncing'; updateSyncButtonState(); loadDataForCurrentMonth(); } else { currentUser = null; signInAnonymously(auth).catch(error => { isOfflineMode = true; syncStatus = 'disconnected'; updateSyncButtonState(); loadDataForCurrentMonth(); }); } updateProfilePage(); }); } else { isOfflineMode = true; currentUser = { uid: "localUser" }; loadDataForCurrentMonth(); }
 }
 
