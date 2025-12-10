@@ -540,10 +540,13 @@ function updateSummary() {
     const salaryIncomeProgress = totalSalaryIncome > 0 ? (paidSalaryIncome / totalSalaryIncome) * 100 : 0;
     const remainingSalaryIncome = totalSalaryIncome - paidSalaryIncome;
 
+    // NOTE: In the new HTML structure, salaryIncome ID is the main amount (previously 'Paid')
+    // salaryTotalValue is now in the stat box.
     if(elements.salaryIncome) {
-        elements.salaryIncome.innerHTML = `${formatCurrency(paidSalaryIncome)} <span class="summary-value-label">Recebidos</span>`;
-        elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
         if(elements.salaryTotalValue) elements.salaryTotalValue.textContent = formatCurrency(totalSalaryIncome);
+        elements.salaryIncome.textContent = formatCurrency(paidSalaryIncome);
+        
+        elements.salaryIncomeProgressBar.style.width = `${Math.min(salaryIncomeProgress, 100)}%`;
         if(elements.salaryPendingValue) elements.salaryPendingValue.textContent = formatCurrency(remainingSalaryIncome);
         
         if(elements.cardSalary) {
@@ -558,10 +561,13 @@ function updateSummary() {
     const fixedVariableExpensesProgress = totalFixedVariableExpenses > 0 ? (paidFixedVariableExpenses / totalFixedVariableExpenses) * 100 : 0;
     const remainingFixedVariableExpenses = totalFixedVariableExpenses - paidFixedVariableExpenses;
     
+    // NOTE: In new HTML structure, fixedVariableExpenses is the main amount (Paid)
+    // expensesTotalValue is now in the stat box.
     if(elements.fixedVariableExpenses) {
-        elements.fixedVariableExpenses.innerHTML = `${formatCurrency(paidFixedVariableExpenses)} <span class="summary-value-label">Pagos</span>`;
-        elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
         if(elements.expensesTotalValue) elements.expensesTotalValue.textContent = formatCurrency(totalFixedVariableExpenses);
+        elements.fixedVariableExpenses.textContent = formatCurrency(paidFixedVariableExpenses);
+
+        elements.fixedVariableExpensesProgressBar.style.width = `${Math.min(fixedVariableExpensesProgress, 100)}%`;
         if(elements.expensesPendingValue) elements.expensesPendingValue.textContent = formatCurrency(remainingFixedVariableExpenses);
 
         if(elements.cardExpenses) {
@@ -601,7 +607,7 @@ function updateSummary() {
         }
 
         elements.salaryRemainderProgressBar.style.backgroundColor = barColor;
-        elements.salaryRemainder.className = `summary-value-small ${textColorClass}`;
+        elements.salaryRemainder.className = `main-amount ${textColorClass}`;
         
         if(elements.cardRemainder) {
              elements.cardRemainder.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');
@@ -621,9 +627,10 @@ function updateSummary() {
     const remainingMumbucaIncome = totalMumbucaIncome - paidMumbucaIncome;
 
     if(elements.mumbucaIncome) {
-        elements.mumbucaIncome.innerHTML = `${formatCurrency(paidMumbucaIncome)} <span class="summary-value-label">Recebidos</span>`;
-        elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
         if(elements.mumbucaTotalValue) elements.mumbucaTotalValue.textContent = formatCurrency(totalMumbucaIncome);
+        elements.mumbucaIncome.textContent = formatCurrency(paidMumbucaIncome);
+
+        elements.mumbucaIncomeProgressBar.style.width = `${Math.min(mumbucaIncomeProgress, 100)}%`;
         if(elements.mumbucaPendingValue) elements.mumbucaPendingValue.textContent = formatCurrency(remainingMumbucaIncome);
         
         if(elements.cardMumbucaIncome) {
@@ -640,9 +647,10 @@ function updateSummary() {
     const remainingMumbucaExpenses = totalMumbucaExpenses - paidMumbucaExpenses;
 
     if(elements.mumbucaExpenses) {
-        elements.mumbucaExpenses.innerHTML = `${formatCurrency(paidMumbucaExpenses)} <span class="summary-value-label">Pagos</span>`;
-        elements.mumbucaExpensesProgressBar.style.width = `${Math.min(mumbucaExpensesProgress, 100)}%`;
         if(elements.mumbucaExpensesTotalValue) elements.mumbucaExpensesTotalValue.textContent = formatCurrency(totalMumbucaExpenses);
+        elements.mumbucaExpenses.textContent = formatCurrency(paidMumbucaExpenses);
+
+        elements.mumbucaExpensesProgressBar.style.width = `${Math.min(mumbucaExpensesProgress, 100)}%`;
         if(elements.mumbucaExpensesPendingValue) elements.mumbucaExpensesPendingValue.textContent = formatCurrency(remainingMumbucaExpenses);
 
         if(elements.cardMumbucaExpenses) {
@@ -682,7 +690,7 @@ function updateSummary() {
         }
 
         elements.mumbucaBalanceProgressBar.style.backgroundColor = barColor;
-        elements.mumbucaBalance.className = `summary-value-small ${textColorClass}`;
+        elements.mumbucaBalance.className = `main-amount ${textColorClass}`;
         
         if(elements.cardMumbucaBalance) {
              elements.cardMumbucaBalance.classList.remove('card-bg-danger', 'card-bg-warning', 'card-bg-info', 'card-bg-success');

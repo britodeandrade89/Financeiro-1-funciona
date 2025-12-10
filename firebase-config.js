@@ -29,7 +29,7 @@ import { getFirestore } from "firebase/firestore";
 
 // ▼▼▼ COLE SUAS CHAVES DO FIREBASE AQUI ▼▼▼
 const firebaseConfig = {
-  apiKey: "AIzaSyCl-W2_kAdpoice9Tdc6psSpJBwYDvQqoQ",
+  apiKey: "AIzaSyCJ9K6sovkNzeO_fuQbSPD9LnIUG0p8Da4",
   authDomain: "financas-bispo-brito.firebaseapp.com",
   projectId: "financas-bispo-brito",
   storageBucket: "financas-bispo-brito.firebasestorage.app",

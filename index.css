@@ -13,11 +13,11 @@
     --danger: #dc2626; /* red-600 */
     --warning: #d97706; /* amber-600 */
     
-    /* LIGHT MODE PALETTE */
-    --background: #f8fafc; /* Slate 50 - Very light gray/white */
-    --surface: #ffffff; /* Pure white */
+    /* LIGHT MODE PALETTE - PURE WHITE */
+    --background: #ffffff; 
+    --surface: #ffffff; 
     --surface-light: #f1f5f9; /* Slate 100 */
-    --text: #1e293b; /* Slate 800 - Dark text */
+    --text: #0f172a; /* Slate 900 */
     --text-light: #64748b; /* Slate 500 */
     --text-lighter: #94a3b8; /* Slate 400 */
     --border: #e2e8f0; /* Slate 200 */
@@ -43,6 +43,7 @@ body {
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    background-color: var(--background);
 }
 
 #main-content {
@@ -72,7 +73,7 @@ body {
 
 /* === BANK STYLE HEADER === */
 .header {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
@@ -308,6 +309,7 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     padding: 1rem;
+    padding-bottom: 100px;
 }
 .sidebar-content .section {
     margin-top: 1rem;
@@ -398,6 +400,31 @@ body {
     font-weight: 700;
 }
 
+/* New Layout Styles for Detailed Data */
+.summary-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+.main-amount {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+}
+.currency-symbol {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+.summary-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
 .summary-value {
     font-size: 1.5rem;
     font-weight: 700;
@@ -452,29 +479,44 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    border-top: 1px solid rgba(0,0,0,0.05);
-    padding-top: 0.75rem;
+    gap: 1px;
+    background: rgba(0,0,0,0.08); /* Border color for grid items */
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 0.5rem;
 }
 
-.stat-item {
+.stat-box {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    gap: 4px;
 }
 
 .stat-label {
     font-size: 0.7rem;
     color: var(--text-light);
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
-    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+    line-height: 1;
 }
 
-.stat-value {
+.stat-val {
+    font-weight: 700;
     font-size: 0.95rem;
-    font-weight: 600;
     color: var(--text);
+    line-height: 1.2;
 }
+.stat-val.success { color: var(--success); }
+.stat-val.warning { color: var(--warning); }
+.stat-val.danger { color: var(--danger); }
+.stat-val.text-light { color: var(--text); }
 
 
 /* Income/Expense Text Coloring */
@@ -779,7 +821,7 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
     display: flex;
