@@ -439,6 +439,37 @@ async function createNewMonthData() {
              newMonthData.expenses.push(newExpense);
         }
     });
+
+    // === RESTORE DEFAULT EXPENSES IF LIST IS EMPTY (FOR NEW DB) ===
+    if (newMonthData.expenses.length === 0) {
+        const defaultExpenses = [
+            { description: 'Aluguel / Prestação Casa', category: 'moradia', type: 'fixed', day: 10, amount: 0 },
+            { description: 'Conta de Luz', category: 'moradia', type: 'variable', day: 10, amount: 0 },
+            { description: 'Conta de Água', category: 'moradia', type: 'variable', day: 10, amount: 0 },
+            { description: 'Internet / TV', category: 'moradia', type: 'fixed', day: 15, amount: 0 },
+            { description: 'Gás de Cozinha', category: 'moradia', type: 'variable', day: 20, amount: 0 },
+            { description: 'Mercado Mensal', category: 'alimentacao', type: 'variable', day: 5, amount: 0 },
+            { description: 'Fatura Cartão de Crédito', category: 'outros', type: 'variable', day: 10, amount: 0 },
+            { description: 'Plano de Celular', category: 'moradia', type: 'fixed', day: 10, amount: 0 }
+        ];
+
+        defaultExpenses.forEach(def => {
+             newMonthData.expenses.push({
+                id: `exp_def_${Date.now()}_${Math.random()}`,
+                description: def.description,
+                amount: def.amount,
+                category: def.category,
+                type: def.type,
+                paid: false,
+                paidDate: null,
+                dueDate: `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${def.day.toString().padStart(2, '0')}`,
+                cyclic: true,
+                current: 1,
+                total: 1
+            });
+        });
+    }
+
     currentMonthData = newMonthData;
     saveData();
 }

@@ -81,10 +81,10 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 1rem 1.5rem;
+    padding: 1.5rem; /* Increased padding */
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem; /* Standardized spacing as requested */
     box-shadow: var(--shadow);
 }
 
@@ -101,6 +101,7 @@ body {
     align-items: center;
     text-align: center;
     flex: 1; /* Take up center space */
+    gap: 0.5rem; /* Spacing between Greeting and Date */
 }
 
 .greeting-text {
@@ -113,7 +114,7 @@ body {
 .date-text {
     font-size: 0.8rem;
     color: var(--text-light);
-    margin-top: 0.2rem;
+    margin-top: 0.25rem; /* Additional breathing room */
     text-transform: capitalize;
 }
 
@@ -141,12 +142,12 @@ body {
     width: 24px;
     height: 24px;
 }
-.ai-btn { color: var(--primary); }
+.ai-btn { color: var(--text); } /* Removed primary color to look like standard tool */
 
 /* Animation for main icon on hover */
 .icon-btn.ai-btn:hover svg {
-    transform: scale(1.1) rotate(15deg);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: rotate(180deg);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 
@@ -155,7 +156,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
 .balance-label {
@@ -602,16 +603,17 @@ body {
     display: flex;
     background: var(--surface-light);
     border-radius: 12px;
-    padding: 0.25rem;
+    padding: 0.5rem;
     margin-bottom: 1rem;
-    gap: 0.25rem;
+    gap: 0.5rem;
     border: 1px solid var(--border);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap; /* WRAP ITEMS TO AVOID SCROLLING */
+    justify-content: center;
 }
 .segmented-control::-webkit-scrollbar { display: none; }
 .segmented-btn {
-    flex: 1;
+    flex: 1 1 auto; /* Allow growth but start auto to fit content */
+    min-width: fit-content;
     background: transparent;
     border: none;
     padding: 0.5rem 0.75rem;
@@ -622,6 +624,7 @@ body {
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s ease;
+    text-align: center;
 }
 .segmented-btn.active {
     background: var(--surface);
@@ -1077,7 +1080,7 @@ body {
 
 /* Media Queries for Mobile Compactness */
 @media (max-width: 480px) {
-    .header { padding: 0.75rem 1rem; }
+    .header { padding: 1.25rem; }
     .balance-value { font-size: 1.8rem; }
     .summary-card { padding: 1rem; }
     .summary-value-small { font-size: 1.5rem; }
